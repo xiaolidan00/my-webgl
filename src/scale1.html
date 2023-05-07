@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>使用WebGL绘制旋转三角形</title>
+    <title>使用WebGL绘制缩放三角形</title>
     <script src="../libs/dat.gui.min.js"></script>
 
     <script src="../libs/utils.js"></script>
@@ -55,19 +55,19 @@
         initArrBuffer(gl, 'aColor', new Float32Array(flatArr(colors)), 3);
 
         var settings = {
-          angle: 0
+          sx: 1,
+          sy: 1
         };
         var gui = new dat.GUI();
-        gui.add(settings, 'angle', 0, 360).onChange(drawScene);
+        for (let k in settings) {
+          gui.add(settings, k, 0.1, 2, 0.1).onChange(drawScene);
+        }
 
-        function createRotateMatrix(angle = 0.0) {
-          var radian = degToRad(angle);
-          var cosB = Math.cos(radian),
-            sinB = Math.sin(radian);
+        function createScaleMatrix(sx = 1.0, sy = 1.0, sz = 1.0) {
           return flatArr([
-            [cosB, sinB, 0.0, 0.0],
-            [-sinB, cosB, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
+            [sx, 0, 0.0, 0.0],
+            [0, sy, 0.0, 0.0],
+            [0.0, 0.0, sz, 0.0],
             [0.0, 0.0, 0.0, 1.0]
           ]);
         }
@@ -77,7 +77,7 @@
           gl.uniformMatrix4fv(
             gl.getUniformLocation(program, 'uModelViewMatrix'),
             false,
-            new Float32Array(createRotateMatrix(settings.angle))
+            new Float32Array(createScaleMatrix(settings.sx, settings.sy))
           );
 
           //画三角形

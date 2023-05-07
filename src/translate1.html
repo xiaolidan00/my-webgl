@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>使用WebGL绘制旋转三角形</title>
+    <title>使用WebGL绘制平移三角形</title>
     <script src="../libs/dat.gui.min.js"></script>
 
     <script src="../libs/utils.js"></script>
@@ -26,11 +26,12 @@
     <script id="vertexShader" type="x-shader/x-vertex">
       attribute vec3 aPosition;
       attribute vec3 aColor;
-      uniform mat4 uModelViewMatrix;
+      attribute vec3 aMovePos;
       varying lowp vec3 vColor;
 
       void main() {
-        gl_Position = uModelViewMatrix * vec4(aPosition,1.0);
+        vec3 pos=aPosition+aMovePos;
+        gl_Position =vec4(pos,1.0);
         vColor=aColor;
       }
     </script>
@@ -55,29 +56,22 @@
         initArrBuffer(gl, 'aColor', new Float32Array(flatArr(colors)), 3);
 
         var settings = {
-          angle: 0
+          x: 0.0,
+          y: 0.0
         };
         var gui = new dat.GUI();
-        gui.add(settings, 'angle', 0, 360).onChange(drawScene);
+        gui.add(settings, 'x', -1, 1, 0.1).onChange(drawScene);
+        gui.add(settings, 'y', -1, 1, 0.1).onChange(drawScene);
 
-        function createRotateMatrix(angle = 0.0) {
-          var radian = degToRad(angle);
-          var cosB = Math.cos(radian),
-            sinB = Math.sin(radian);
-          return flatArr([
-            [cosB, sinB, 0.0, 0.0],
-            [-sinB, cosB, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0]
-          ]);
-        }
         function drawScene() {
           cleanGl(gl);
 
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(program, 'uModelViewMatrix'),
-            false,
-            new Float32Array(createRotateMatrix(settings.angle))
+          gl.vertexAttrib3f(
+            gl.getAttribLocation(program, 'aMovePos'),
+
+            settings.x,
+            settings.y,
+            0.0
           );
 
           //画三角形

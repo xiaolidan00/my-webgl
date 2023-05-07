@@ -81,15 +81,67 @@ function initShaderProgram(gl, vsSource, fsSource) {
   return shaderProgram;
 }
 
+//透视投影
+
+function perspective(fieldOfViewInRadians, aspect, near, far) {
+  var f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
+  var rangeInv = 1.0 / (near - far);
+
+  return flatArr([
+    [f / aspect, 0, 0, 0],
+    [0, f, 0, 0],
+    [0, 0, (near + far) * rangeInv, -1],
+    [0, 0, near * far * rangeInv * 2, 0]
+  ]);
+}
+
 function initProjectionMatrix(gl) {
   const fieldOfView = degToRad(45);
   const aspect = gl.canvas.width / gl.canvas.height;
   const zNear = 1;
-  const zFar = 10000.0;
-  const projectionMatrix = mat4.create();
+  const zFar = 2000.0;
 
-  mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
-  console.log(projectionMatrix);
+  var projectionMatrix = perspective(fieldOfView, aspect, zNear, zFar);
+
+  //   var projectionMatrix = mat4.create();
+
+  //   mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+
+  gl.uniformMatrix4fv(
+    gl.getUniformLocation(gl.program, 'uProjectionMatrix'),
+    false,
+    projectionMatrix
+  );
+  return projectionMatrix;
+}
+
+//正交投影
+function orthographic(left, right, bottom, top, near, far) {
+  return flatArr([
+    [2 / (right - left), 0, 0, 0],
+    [0, 2 / (top - bottom), 0, 0],
+    [0, 0, 2 / (near - far), 0],
+
+    [
+      (left + right) / (left - right),
+      (bottom + top) / (bottom - top),
+      (near + far) / (near - far),
+      1
+    ]
+  ]);
+}
+
+function initProjectionMatrixOrtho(gl) {
+  var depth = Math.max(gl.canvas.width, gl.canvas.height);
+  var left = -gl.canvas.width * 0.01;
+  var right = gl.canvas.width * 0.01;
+  var bottom = gl.canvas.height * 0.01;
+  var top = -gl.canvas.height * 0.01;
+  var near = depth * 0.1;
+  var far = -depth * 0.1;
+  var projectionMatrix = new Float32Array(orthographic(left, right, bottom, top, near, far));
+  // var projectionMatrix = mat4.create();
+  // mat4.ortho(projectionMatrix, left, right, bottom, top, near, far);
   gl.uniformMatrix4fv(
     gl.getUniformLocation(gl.program, 'uProjectionMatrix'),
     false,
