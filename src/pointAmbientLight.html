@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>环境光+点光源</title>
+    <script src="../libs/gl-matrix-min.js"></script>
+    <script src="../libs/dat.gui.min.js"></script>
+    <script src="../libs/utils.js"></script>
+    <script src="../libs/helper.js"></script>
+    <script src="./cube.js"></script>
+    <style>
+      #webgl,
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <canvas id="webgl"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      #ifdef GL_ES
+       precision mediump float;
+       #endif
+      attribute vec3 aPosition;
+
+      uniform mat4 uProjectionMatrix;
+      uniform mat4 uModelViewMatrix;
+      attribute vec3 aColor;//基底色
+      attribute vec3 aNormal;//法向量
+      attribute vec3 aLightColor;//平行光光线颜色
+
+      attribute vec3 aAmbientColor;//环境光色
+      attribute vec3 aPointLight;//点光源位置
+      varying   vec3 vColor;
+
+      void main() {
+
+        gl_Position =uProjectionMatrix*uModelViewMatrix  * vec4(aPosition,1.0);
+
+        //计算每个点的光线方向
+        vec3 lightDirection = normalize( aPointLight-gl_Position.xyz);
+         //对法向量进行归一化
+         vec3 normal = normalize(aNormal.xyz);
+         //计算光线方向和法向量的点积
+       float nDotL = max(dot(lightDirection, normal), 0.0);
+         //计算漫反射颜色
+         vec3 diffuse = aLightColor * aColor.rgb * nDotL;
+
+         //计算环境光颜色
+         vec3 ambient=aAmbientColor*aColor.rgb;
+          vColor =vec3(diffuse+ambient);
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        #ifdef GL_ES
+       precision mediump float;
+       #endif
+      varying   vec3 vColor;
+
+           void main() {
+              gl_FragColor = vec4(vColor,1.0);
+           }
+    </script>
+    <script>
+      function init() {
+        var gl = initGl('webgl');
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var program = initShaderProgram(gl, vs, fs);
+        //开启正反面
+        gl.enable(gl.CULL_FACE);
+        //默认立方体为红色
+        gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aColor'), 1.0, 0.0, 0.0);
+        //环境光线颜色
+        gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aAmbientColor'), 0.3, 0.3, 0.3);
+        //光线颜色
+        gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aLightColor'), 0.8, 0.8, 0.8);
+        //光照位置
+        gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aPointLight'), 2.0, 2.0, 2.0);
+
+        initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
+        initArrBuffer(gl, 'aNormal', new Float32Array(flatArr(positions)), 3);
+
+        initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
+        initProjectionMatrix(gl);
+        var settings = initGUI();
+        function drawScene() {
+          cleanGl(gl);
+          initModelViewMatrix(gl, settings);
+          gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+        }
+        function animate() {
+          drawScene();
+          requestAnimationFrame(animate);
+        }
+        animate();
+      }
+    </script>
+  </body>
+</html>

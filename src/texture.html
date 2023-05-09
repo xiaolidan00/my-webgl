@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>画贴图</title>
+    <script src="../libs/dat.gui.min.js"></script>
+
+    <script src="../libs/utils.js"></script>
+    <style>
+      #webgl,
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+
+  <body onload="init()">
+    <canvas id="webgl"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      precision mediump float;
+      attribute vec2 aPosition;
+      attribute vec2 aTexCoord;
+      varying   vec2 vTexCoord;
+
+      void main() {
+       gl_Position = vec4( aPosition, 0.0, 1);
+        vTexCoord=aTexCoord;
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      precision mediump float;
+              varying  vec2 vTexCoord;
+      uniform sampler2D uTex;
+            void main() {
+              gl_FragColor =  texture2D(uTex, vTexCoord).ggba;
+            }
+    </script>
+    <script>
+      async function init() {
+        var gl = initGl('webgl');
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var program = initShaderProgram(gl, vs, fs);
+
+        const textureCoord = [
+          [0.0, 0.0],
+          [1.0, 0.0],
+          [0.0, 1.0],
+          [0.0, 1.0],
+          [1.0, 0.0],
+          [1.0, 1.0]
+        ].reverse();
+
+        initArrBuffer(gl, 'aTexCoord', new Float32Array(flatArr(textureCoord)), 2);
+        var { texture, image } = await initTexture(gl, 'images/a.jpg');
+
+        const positions = [
+          [-1.0, 1.0],
+          [1.0, 1.0],
+          [-1.0, -1.0],
+          [-1.0, -1.0],
+          [1.0, 1.0],
+          [1.0, -1.0]
+        ].reverse();
+        initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 2);
+
+        //开启正反面
+        gl.enable(gl.CULL_FACE);
+        function drawScene() {
+          cleanGl(gl);
+
+          //画三角形
+          gl.drawArrays(gl.TRIANGLES, 0, positions.length);
+        }
+        drawScene();
+      }
+    </script>
+  </body>
+</html>

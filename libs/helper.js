@@ -18,13 +18,13 @@ function initGUI(setting = {}) {
   rotatefolder.add(settings, 'angleY', 0, 2 * Math.PI);
   rotatefolder.add(settings, 'angleZ', 0, 2 * Math.PI);
   var scalefolder = gui.addFolder('scale');
-  scalefolder.add(settings, 'scaleX', 0.1, 100);
-  scalefolder.add(settings, 'scaleY', 0.1, 100);
-  scalefolder.add(settings, 'scaleZ', 0.1, 100);
+  scalefolder.add(settings, 'scaleX', 0.1, 3);
+  scalefolder.add(settings, 'scaleY', 0.1, 3);
+  scalefolder.add(settings, 'scaleZ', 0.1, 3);
   var posfolder = gui.addFolder('position');
-  posfolder.add(settings, 'x', -200, 200);
-  posfolder.add(settings, 'y', -200, 200);
-  posfolder.add(settings, 'z', -200, 200);
+  posfolder.add(settings, 'x', -2, 2);
+  posfolder.add(settings, 'y', -2, 2);
+  posfolder.add(settings, 'z', -2, 2);
   return settings;
 }
 function initModelViewMatrix(gl, settings) {
@@ -40,4 +40,5 @@ function initModelViewMatrix(gl, settings) {
     false,
     modelViewMatrix
   );
+  return modelViewMatrix;
 }

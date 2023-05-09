@@ -60,10 +60,30 @@ var indices = [
   [20, 21, 22],
   [20, 22, 23] // left
 ];
+const faceNormals = [
+  [0.0, 0.0, 1.0], // front
+  [1.0, 0.0, 0.0], //  right
+  [0.0, 1.0, 0.0], //  up
+  [-1.0, 0.0, 0.0], // left
+  [0.0, -1.0, 0.0], //  down
+  [0.0, 0.0, -1.0] // back
+];
+const textureCoord = [
+  [0.0, 0.0],
+  [1.0, 0.0],
+  [1.0, 1.0],
+  [0.0, 1.0]
+];
+var textureCoordinates = [];
+faceColors.forEach((a) => {
+  textureCoordinates.push(textureCoord);
+});
 
 var colors = [];
+var normals = [];
 var vertexCount = faceColors.length * faceColors.length;
 for (var j = 0; j < vertexCount; ++j) {
   let i = parseInt(j / 4);
   colors.push(faceColors[i % faceColors.length]);
+  normals.push(faceNormals[i % faceNormals.length]);
 }
