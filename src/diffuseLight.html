@@ -77,7 +77,7 @@
         gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aLightDirection'), 2.0, 2.0, 2.0);
 
         initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
-        initArrBuffer(gl, 'aNormal', new Float32Array(flatArr(positions)), 3);
+        initArrBuffer(gl, 'aNormal', new Float32Array(flatArr(normals)), 3);
 
         initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
         initProjectionMatrix(gl);

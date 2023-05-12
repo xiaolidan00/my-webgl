@@ -174,3 +174,41 @@ function initTexture(gl, url) {
     };
   });
 }
+
+function initCubeTex(gl, texture, target, url) {
+  return new Promise((resolve) => {
+    var image = new Image();
+    image.src = url; //必须同域
+    image.onload = () => {
+      console.log(target, url);
+
+      gl.texImage2D(target, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      resolve({ image, texture });
+    };
+  });
+}
+//立方体贴图TEXTURE_CUBE_MAP
+async function initCubeTexture(gl, images) {
+  const faceMap = {
+    //前
+    f: gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+    //后
+    b: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+    //上
+    u: gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+    //下
+    d: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    //左
+    l: gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+    //右
+    r: gl.TEXTURE_CUBE_MAP_POSITIVE_X
+  };
+  var texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+  for (let k in images) {
+    await initCubeTex(gl, texture, faceMap[k], images[k]);
+  }
+
+  gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+}
