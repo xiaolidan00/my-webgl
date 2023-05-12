@@ -1,16 +1,21 @@
-function initGUI(setting = {}) {
-  var settings = {
-    angleX: 1,
-    angleY: 1,
-    angleZ: 1,
-    scaleX: 1,
-    scaleY: 1,
-    scaleZ: 1,
-    x: 0,
-    y: 0,
-    z: -6,
-    ...setting
-  };
+function initGUI(setting = {}, isLight) {
+  var settings = Object.assign(
+    {
+      angleX: 1,
+      angleY: 1,
+      angleZ: 1,
+      scaleX: 1,
+      scaleY: 1,
+      scaleZ: 1,
+      x: 0,
+      y: 0,
+      z: -6,
+      lightX: 2,
+      lightY: 0.5,
+      lightZ: -1
+    },
+    setting
+  );
 
   var gui = new dat.GUI();
   var rotatefolder = gui.addFolder('rotate');
@@ -24,7 +29,14 @@ function initGUI(setting = {}) {
   var posfolder = gui.addFolder('position');
   posfolder.add(settings, 'x', -2, 2);
   posfolder.add(settings, 'y', -2, 2);
-  posfolder.add(settings, 'z', -2, 2);
+  posfolder.add(settings, 'z', -8, -4);
+  if (isLight) {
+    var lightfolder = gui.addFolder('light');
+    lightfolder.add(settings, 'lightX', -4, 4);
+    lightfolder.add(settings, 'lightY', -4, 4);
+    lightfolder.add(settings, 'lightZ', -4, 4);
+  }
+
   return settings;
 }
 function initModelViewMatrix(gl, settings) {

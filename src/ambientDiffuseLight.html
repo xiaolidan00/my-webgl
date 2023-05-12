@@ -69,6 +69,7 @@
         const fs = document.getElementById('fragmentShader').innerText;
 
         var program = initShaderProgram(gl, vs, fs);
+
         //开启正反面
         gl.enable(gl.CULL_FACE);
         //默认立方体为红色
@@ -76,20 +77,32 @@
         //环境光线颜色
         gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aAmbientColor'), 0.3, 0.3, 0.3);
         //平行光线颜色
-        gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aLightColor'), 0.8, 0.8, 0.8);
+        gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aLightColor'), 0.7, 0.7, 0.7);
         //光照方向
-        gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aLightDirection'), 2.0, 2.0, 2.0);
+        // gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aLightDirection'), 1.0, 0.5, 2.0);
 
         initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
         initArrBuffer(gl, 'aNormal', new Float32Array(flatArr(normals)), 3);
-
         initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
-        initProjectionMatrix(gl);
-        var settings = initGUI();
-        function drawScene() {
-          cleanGl(gl);
+
+        var settings = initGUI({}, true);
+
+        function drawCube() {
+          initProjectionMatrix(gl);
+          gl.vertexAttrib3f(
+            gl.getAttribLocation(gl.program, 'aLightDirection'),
+            settings.lightX,
+            settings.lightY,
+            settings.lightZ
+          );
           initModelViewMatrix(gl, settings);
           gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+        }
+
+        function drawScene() {
+          cleanGl(gl);
+
+          drawCube();
         }
         function animate() {
           drawScene();

@@ -1,13 +1,11 @@
 var faceColors = [
-  [1, 0.6470588235294118, 0], // Front face: orange
-  [1.0, 0.0, 0.0], // Back face: red
-  [0.0, 1.0, 0.0], // Top face: green
-  [0.0, 0.0, 1.0], // Bottom face: blue
-  [1.0, 1.0, 0.0], // Right face: yellow
-  [1.0, 0.0, 1.0] // Left face: purple
+  [1.0, 1.0, 1.0, 1.0], // Front face: white
+  [1.0, 0.0, 0.0, 1.0], // Back face: red
+  [0.0, 1.0, 0.0, 1.0], // Top face: green
+  [0.0, 0.0, 1.0, 1.0], // Bottom face: blue
+  [1.0, 1.0, 0.0, 1.0], // Right face: yellow
+  [1.0, 0.0, 1.0, 1.0] // Left face: purple
 ];
-
-// Convert the array of colors into a table for all the vertices.
 
 var positions = [
   // Front face
@@ -46,6 +44,7 @@ var positions = [
   [-1.0, 1.0, 1.0],
   [-1.0, 1.0, -1.0]
 ];
+
 var indices = [
   [0, 1, 2],
   [0, 2, 3], // front
@@ -60,29 +59,40 @@ var indices = [
   [20, 21, 22],
   [20, 22, 23] // left
 ];
-const faceNormals = [
-  [0.0, 0.0, 1.0], // front
-  [0.0, 0.0, -1.0][(0.0, 1.0, 0.0)], // back //  up
-  [0.0, -1.0, 0.0], //  down
-  [1.0, 0.0, 0.0], //  right
-  [-1.0, 0.0, 0.0] // left
+
+var vertexNormals = [
+  // Front
+  [0.0, 0.0, 1.0],
+
+  // Back
+  [0.0, 0.0, -1.0],
+
+  // Top
+  [0.0, 1.0, 0.0],
+
+  // Bottom
+  [0.0, -1.0, 0.0],
+
+  // Right
+  [1.0, 0.0, 0.0],
+
+  // Left
+  [-1.0, 0.0, 0.0]
 ];
-const textureCoord = [
+var texCoord = [
   [0.0, 0.0],
   [1.0, 0.0],
   [1.0, 1.0],
   [0.0, 1.0]
 ];
 var textureCoordinates = [];
-faceColors.forEach((a) => {
-  textureCoordinates.push(textureCoord);
-});
-
 var colors = [];
 var normals = [];
-var vertexCount = faceColors.length * faceColors.length;
-for (var j = 0; j < vertexCount; ++j) {
-  let i = parseInt(j / 4);
-  colors.push(faceColors[i % faceColors.length]);
-  normals.push(faceNormals[i % faceNormals.length]);
-}
+faceColors.forEach((c, i) => {
+  colors.push(c, c, c, c);
+  let n = vertexNormals[i];
+  normals.push(n, n, n, n);
+  textureCoordinates.push(...texCoord);
+});
+console.log(normals);
+var vertexCount = 36;

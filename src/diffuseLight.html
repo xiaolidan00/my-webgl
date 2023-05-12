@@ -74,16 +74,23 @@
         //光线颜色
         gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aLightColor'), 1.0, 1.0, 1.0);
         //光照方向
-        gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aLightDirection'), 2.0, 2.0, 2.0);
+        // gl.vertexAttrib3f(gl.getAttribLocation(gl.program, 'aLightDirection'), 2.0, 2.0, 2.0);
 
         initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
         initArrBuffer(gl, 'aNormal', new Float32Array(flatArr(normals)), 3);
 
         initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
         initProjectionMatrix(gl);
-        var settings = initGUI();
+        var settings = initGUI({}, true);
+
         function drawScene() {
           cleanGl(gl);
+          gl.vertexAttrib3f(
+            gl.getAttribLocation(gl.program, 'aLightDirection'),
+            settings.lightX,
+            settings.lightY,
+            settings.lightZ
+          );
           initModelViewMatrix(gl, settings);
           gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
         }
