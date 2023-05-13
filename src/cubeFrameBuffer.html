@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../libs/gl-matrix-min.js"></script>
+    <script src="../libs/dat.gui.min.js"></script>
+    <script src="../libs/utils.js"></script>
+    <script src="../libs/helper.js"></script>
+    <script src="./cube.js"></script>
+    <style>
+      #webgl,
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <canvas id="webgl"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      precision mediump float;
+      attribute vec3 aPosition;
+      uniform mat4 uProjectionMatrix;
+      uniform mat4 uModelViewMatrix;
+      attribute vec2 aTexCoord;
+      varying  vec2 vTexCoord;
+
+      void main() {
+        gl_Position = uProjectionMatrix*uModelViewMatrix * vec4(aPosition,1.0);
+        vTexCoord=aTexCoord;
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      precision mediump float;
+      uniform sampler2D uTex;
+      varying   vec2 vTexCoord;
+
+      void main() {
+        gl_FragColor =  texture2D(uTex, vTexCoord) ;
+      }
+    </script>
+
+    <script>
+      async function init() {
+        var gl = initGl('webgl');
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var program = initShaderProgram(gl, vs, fs);
+        //开启正反面
+        gl.enable(gl.CULL_FACE);
+        var { texture, image } = await initTexture(gl, 'images/a.jpg');
+
+        const { framebuffer, texture: frameTex } = initFrameBuffer(gl);
+
+        var radius = 0;
+        var settings = initGUI();
+        function drawCube(idx) {
+          initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
+
+          initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
+
+          initArrBuffer(gl, 'aTexCoord', new Float32Array(flatArr(textureCoordinates)), 2);
+          const fieldOfView = degToRad(45);
+          const aspect = gl.canvas.width / gl.canvas.height;
+          const zNear = 1;
+          const zFar = 2000.0;
+
+          var projectionMatrix = mat4.create();
+
+          mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+          gl.uniformMatrix4fv(
+            gl.getUniformLocation(gl.program, 'uProjectionMatrix'),
+            false,
+            projectionMatrix
+          );
+          if (idx == 1) {
+            initModelViewMatrix(gl, settings);
+          } else {
+            var modelMatrix = mat4.create();
+            mat4.translate(modelMatrix, modelMatrix, [0, 0, -6]);
+            mat4.rotate(modelMatrix, modelMatrix, radius, [1, 1, 0]);
+            gl.uniformMatrix4fv(
+              gl.getUniformLocation(gl.program, 'uModelViewMatrix'),
+              false,
+              modelMatrix
+            );
+          }
+
+          gl.activeTexture(gl.TEXTURE0);
+          gl.uniform1i(gl.getUniformLocation(gl.program, 'uTex'), 0);
+
+          gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+        }
+        function drawScene() {
+          if (radius > Math.PI * 2) {
+            radius = 0;
+          }
+          radius += 0.02;
+          gl.enable(gl.CULL_FACE);
+          gl.enable(gl.DEPTH_TEST);
+          //画帧缓冲
+          gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+          gl.clearColor(1, 1, 0, 1); // 黄色底色
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+          drawCube(0);
+
+          //画立方体
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          gl.bindTexture(gl.TEXTURE_2D, frameTex);
+          gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+          gl.clearColor(0, 0, 0, 1); // 黑色底色
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+          drawCube(1);
+
+          requestAnimationFrame(drawScene);
+        }
+
+        drawScene();
+      }
+
+      function initFrameBuffer(gl) {
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        //frame生成的贴图宽高要与截取webgl的宽高一致，否则有可能物体在画面外，我这里默认了整个场景
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          gl.canvas.width,
+          gl.canvas.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null
+        );
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        var framebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+        framebuffer.texture = texture;
+
+        var e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+
+        if (gl.FRAMEBUFFER_COMPLETE !== e) {
+          console.log('Frame buffer object is incomplete: ' + e.toString());
+
+          return;
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindTexture(texture, null);
+        return { framebuffer, texture };
+      }
+    </script>
+  </body>
+</html>

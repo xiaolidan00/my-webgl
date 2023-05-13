@@ -13,7 +13,7 @@ function initGl(id) {
   canvas.style.background = 'black';
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  var gl = canvas.getContext('webgl');
+  var gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
   window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
@@ -28,6 +28,7 @@ function cleanGl(gl) {
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 }
 
 function initArrBuffer(gl, code, value, perLen) {

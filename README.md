@@ -22,6 +22,9 @@
 - texture.html 2D 贴图
 - texture1.html 2D 贴图颜色
 - textureCube.html 给立方体加贴图
+- textureCubeCanvas.html 给立方体加动态 Canvas 贴图
+- textureCubeVideo.html 给立方体加视频贴图
+- cubeFrameBuffer.html 帧缓冲贴图
 
 ## 光照
 

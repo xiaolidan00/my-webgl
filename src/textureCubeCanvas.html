@@ -56,9 +56,11 @@
         var program = initShaderProgram(gl, vs, fs);
         //开启正反面
         gl.enable(gl.CULL_FACE);
-        var { texture, image } = await initTexture(gl, 'images/a.jpg');
+
+        const { texture, canvas } = initCanvasTex(gl);
         gl.activeTexture(gl.TEXTURE0);
         gl.uniform1i(gl.getUniformLocation(gl.program, 'uTex'), 0);
+
         initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
 
         initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
@@ -66,15 +68,64 @@
         initArrBuffer(gl, 'aTexCoord', new Float32Array(flatArr(textureCoordinates)), 2);
         initProjectionMatrix(gl);
         var settings = initGUI();
-
-        function drawScene() {
+        let count = 0;
+        async function drawScene() {
           cleanGl(gl);
+          const ctx = canvas.getContext('2d');
+          if (count >= 100) {
+            count = 0;
+            //清空
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            //透明贴图canvas
+            // ctx.fillStyle = `rgba(0,0,0,0)`;
+            //变换底色
+            ctx.fillStyle = `rgb(${Math.random() * 255},${Math.random() * 255},${
+              Math.random() * 255
+            })`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'white';
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * 500, Math.random() * 500);
+          ctx.lineTo(Math.random() * 500, Math.random() * 500);
+          ctx.stroke();
+
+          ctx.fillStyle = `rgb(${Math.random() * 255},${Math.random() * 255},${
+            Math.random() * 255
+          })`;
+          count++;
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+
           initModelViewMatrix(gl, settings);
           gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
           requestAnimationFrame(drawScene);
         }
 
         drawScene();
+      }
+
+      function initCanvasTex(gl) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 500;
+        canvas.height = 500;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgb(255,0,0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+        return { texture, canvas };
       }
     </script>
   </body>
