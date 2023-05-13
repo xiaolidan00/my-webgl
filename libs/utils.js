@@ -181,7 +181,6 @@ function initCubeTex(gl, texture, target, url) {
     image.src = url; //必须同域
     image.onload = () => {
       console.log(target, url);
-
       gl.texImage2D(target, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
       resolve({ image, texture });
     };

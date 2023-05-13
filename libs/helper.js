@@ -36,7 +36,7 @@ function initGUI(setting = {}, isLight) {
     lightfolder.add(settings, 'lightY', -4, 4);
     lightfolder.add(settings, 'lightZ', -4, 4);
   }
-
+  window.gui = gui;
   return settings;
 }
 function initModelViewMatrix(gl, settings) {

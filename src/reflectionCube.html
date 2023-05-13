@@ -24,47 +24,41 @@
   <body onload="init()">
     <canvas id="webgl"></canvas>
     <script id="vertexShader" type="x-shader/x-vertex">
-            attribute vec4 a_position;
-      attribute vec3 a_normal;
+      attribute vec3 aPosition;//物体点
+       attribute vec3 aNormal;//法线点
 
-      uniform mat4 u_projection;
-      uniform mat4 u_view;
-      uniform mat4 u_world;
+       uniform mat4 uProjectionMatrix;//透视投影
+       uniform mat4 uView;//视图矩阵
+       uniform mat4 uModelViewMatrix;//模型变换
 
-      varying vec3 v_worldPosition;
-      varying vec3 v_worldNormal;
+       varying vec3 vWorldPosition;//世界物体点
+       varying vec3 vWorldNormal;//世界物体法线
 
-      void main() {
-        // Multiply the position by the matrix.
-        gl_Position = u_projection * u_view * u_world * a_position;
-
-        // send the view position to the fragment shader
-        v_worldPosition = (u_world * a_position).xyz;
-
-        // orient the normals and pass to the fragment shader
-        v_worldNormal = mat3(u_world) * a_normal;
-      }
+       void main() {
+         vec4 pos=vec4(aPosition,1.0);
+         gl_Position = uProjectionMatrix * uView * uModelViewMatrix * pos;
+         vWorldPosition = (uModelViewMatrix * pos).xyz;
+         vWorldNormal = mat3(uModelViewMatrix) * aNormal;
+       }
     </script>
 
     <script id="fragmentShader" type="x-shader/x-fragment">
       precision highp float;
 
-      // Passed in from the vertex shader.
-      varying vec3 v_worldPosition;
-      varying vec3 v_worldNormal;
+      varying vec3 vWorldPosition;
+      varying vec3 vWorldNormal;
 
-      // The texture.
-      uniform samplerCube u_texture;
+      uniform samplerCube uImage;//立方体贴图
 
-      // The position of the camera
-      uniform vec3 u_worldCameraPosition;
+      uniform vec3 uCameraPosition;//相机位置
 
       void main() {
-        vec3 worldNormal = normalize(v_worldNormal);
-        vec3 eyeToSurfaceDir = normalize(v_worldPosition - u_worldCameraPosition);
+        vec3 worldNormal = normalize(vWorldNormal);
+        vec3 eyeToSurfaceDir = normalize(vWorldPosition - uCameraPosition);
+        //反射
         vec3 direction = reflect(eyeToSurfaceDir,worldNormal);
 
-        gl_FragColor = textureCube(u_texture, direction);
+        gl_FragColor = textureCube(uImage, direction);
       }
     </script>
 
@@ -76,25 +70,10 @@
         const fs = document.getElementById('fragmentShader').innerText;
 
         var program = initShaderProgram(gl, vs, fs);
-        // look up where the vertex data needs to go.
-        var positionLocation = gl.getAttribLocation(program, 'a_position');
-        var normalLocation = gl.getAttribLocation(program, 'a_normal');
-
-        // lookup uniforms
-        var projectionLocation = gl.getUniformLocation(program, 'u_projection');
-        var viewLocation = gl.getUniformLocation(program, 'u_view');
-        var worldLocation = gl.getUniformLocation(program, 'u_world');
-        var textureLocation = gl.getUniformLocation(program, 'u_texture');
-        var worldCameraPositionLocation = gl.getUniformLocation(program, 'u_worldCameraPosition');
-
-        // Create a buffer for positions
-        var positionBuffer = gl.createBuffer();
-        // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        // Put the positions in the buffer
-        setGeometry(gl);
+        // gl.enable(gl.CULL_FACE);
         initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
-        initArrBuffer(gl, 'aNormal', new Float32Array(flatArr(normals)));
+        initArrBuffer(gl, 'aNormal', new Float32Array(flatArr(normals)), 3);
+        initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
 
         //立方体贴图
         const images = {
@@ -113,110 +92,32 @@
         };
 
         await initCubeTexture(gl, images);
+        gl.activeTexture(gl.TEXTURE0);
         gl.uniform1i(gl.getUniformLocation(gl.program, 'uImage'), 0);
-        //透视投影
-        const fieldOfView = degToRad(45);
-        const aspect = gl.canvas.width / gl.canvas.height;
-        const zNear = 1;
-        const zFar = 2000.0;
-        var projectionMatrix = mat4.create();
 
-        mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
-        //画全景图的板面
-        var settings = {
-          x: 1,
-          y: 0,
-          z: 1
-        };
-        var gui = new dat.GUI();
-        for (let k in settings) {
-          gui.add(settings, k, -1, 1).onChange(drawScene);
-        }
+        //透视投影
+
+        initProjectionMatrix(gl);
+        var cameraPosition = [0, 0, 2];
+        var cameraMatrix = mat4.create();
+        mat4.lookAt(cameraMatrix, [0, 0, 2], [0, 0, 0], [0, 1, 0]);
+
+        var settings = initGUI();
 
         function drawScene() {
           cleanGl(gl);
-          //相机位置
-          // convert to seconds
-          time *= 0.001;
-          // Subtract the previous time from the current time
-          var deltaTime = time - then;
-          // Remember the current time for the next frame.
-          then = time;
 
-          webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+          initModelViewMatrix(gl, settings);
 
-          // Tell WebGL how to convert from clip space to pixels
-          gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+          //从相机矩阵创建视图
+          var viewMatrix = mat4.create();
+          mat4.invert(cameraMatrix, cameraMatrix);
 
-          gl.enable(gl.CULL_FACE);
-          gl.enable(gl.DEPTH_TEST);
+          gl.uniformMatrix4fv(gl.getUniformLocation(program, 'uView'), false, viewMatrix);
 
-          // Animate the rotation
-          modelYRotationRadians += -0.7 * deltaTime;
-          modelXRotationRadians += -0.4 * deltaTime;
+          gl.uniform3fv(gl.getUniformLocation(program, 'uCameraPosition'), cameraPosition);
 
-          // Clear the canvas AND the depth buffer.
-          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-          // Tell it to use our program (pair of shaders)
-          gl.useProgram(program);
-
-          // Turn on the position attribute
-          gl.enableVertexAttribArray(positionLocation);
-
-          // Bind the position buffer.
-          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-          // Tell the position attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-          var size = 3; // 3 components per iteration
-          var type = gl.FLOAT; // the data is 32bit floats
-          var normalize = false; // don't normalize the data
-          var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
-          var offset = 0; // start at the beginning of the buffer
-          gl.vertexAttribPointer(positionLocation, size, type, normalize, stride, offset);
-
-          // Turn on the normal attribute
-          gl.enableVertexAttribArray(normalLocation);
-
-          // Bind the normal buffer.
-          gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-
-          // Tell the attribute how to get data out of normalBuffer (ARRAY_BUFFER)
-          var size = 3; // 3 components per iteration
-          var type = gl.FLOAT; // the data is 32bit floating point values
-          var normalize = false; // normalize the data (convert from 0-255 to 0-1)
-          var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
-          var offset = 0; // start at the beginning of the buffer
-          gl.vertexAttribPointer(normalLocation, size, type, normalize, stride, offset);
-
-          // Compute the projection matrix
-          var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-          var projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, 1, 2000);
-          gl.uniformMatrix4fv(projectionLocation, false, projectionMatrix);
-
-          var cameraPosition = [0, 0, 2];
-          var target = [0, 0, 0];
-          var up = [0, 1, 0];
-          // Compute the camera's matrix using look at.
-          var cameraMatrix = m4.lookAt(cameraPosition, target, up);
-
-          // Make a view matrix from the camera matrix.
-          var viewMatrix = m4.inverse(cameraMatrix);
-
-          var worldMatrix = m4.xRotation(modelXRotationRadians);
-          worldMatrix = m4.yRotate(worldMatrix, modelYRotationRadians);
-
-          // Set the uniforms
-          gl.uniformMatrix4fv(projectionLocation, false, projectionMatrix);
-          gl.uniformMatrix4fv(viewLocation, false, viewMatrix);
-          gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
-          gl.uniform3fv(worldCameraPositionLocation, cameraPosition);
-
-          // Tell the shader to use texture unit 0 for u_texture
-          gl.uniform1i(textureLocation, 0);
-
-          // Draw the geometry.
-          gl.drawArrays(gl.TRIANGLES, 0, vertexCount);
+          gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
 
           requestAnimationFrame(drawScene);
         }

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>反射立方体</title>
+    <script src="../libs/gl-matrix-min.js"></script>
+    <script src="../libs/dat.gui.min.js"></script>
+    <script src="../libs/utils.js"></script>
+    <script src="../libs/helper.js"></script>
+    <script src="./cube.js"></script>
+    <style>
+      #webgl,
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <canvas id="webgl"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      attribute vec3 aPosition;//物体点
+       attribute vec3 aNormal;//法线点
+
+       uniform mat4 uProjectionMatrix;//透视投影
+       uniform mat4 uView;//视图矩阵
+       uniform mat4 uModelViewMatrix;//模型变换
+
+       varying vec3 vWorldPosition;//世界物体点
+       varying vec3 vWorldNormal;//世界物体法线
+
+       void main() {
+         vec4 pos=vec4(aPosition,1.0);
+         gl_Position = uProjectionMatrix * uView * uModelViewMatrix * pos;
+         vWorldPosition = (uModelViewMatrix * pos).xyz;
+         vWorldNormal = mat3(uModelViewMatrix) * aNormal;
+       }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      precision highp float;
+
+      varying vec3 vWorldPosition;
+      varying vec3 vWorldNormal;
+
+      uniform samplerCube uImage;//立方体贴图
+
+      uniform vec3 uCameraPosition;//相机位置
+
+      void main() {
+        vec3 worldNormal = normalize(vWorldNormal);
+        vec3 eyeToSurfaceDir = normalize(vWorldPosition - uCameraPosition);
+        //反射
+        vec3 direction = reflect(eyeToSurfaceDir,worldNormal);
+
+        gl_FragColor = textureCube(uImage, direction);
+      }
+    </script>
+    <script id="vertexShader1" type="x-shader/x-vertex">
+      attribute vec2 aPosition;
+      varying vec4 vPosition;
+      void main() {
+        gl_Position = vec4(aPosition,1.0,1.0);
+        vPosition = vec4(aPosition,0.0,1.0);
+      }
+    </script>
+
+    <script id="fragmentShader1" type="x-shader/x-fragment">
+              precision mediump float;
+      uniform samplerCube uImage;
+      uniform mat4 uMatrix;
+      varying vec4 vPosition;
+      void main() {
+        vec4 t = uMatrix*  vPosition;
+        gl_FragColor = textureCube(uImage, normalize(t.xyz / t.w));
+      }
+    </script>
+    <script>
+      async function init() {
+        var gl = initGl('webgl');
+        //立方体
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var cubeProgram = initShaderProgram(gl, vs, fs);
+        //全景图
+
+        const vs1 = document.getElementById('vertexShader1').innerText;
+
+        const fs1 = document.getElementById('fragmentShader1').innerText;
+
+        var envProgram = initShaderProgram(gl, vs1, fs1);
+
+        var cameraMatrix = mat4.create();
+        var viewMatrix = mat4.create();
+
+        //透视投影
+        const fieldOfView = degToRad(45);
+        const aspect = gl.canvas.width / gl.canvas.height;
+        const zNear = 1;
+        const zFar = 2000.0;
+
+        var projectionMatrix = mat4.create();
+
+        mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+
+        //立方体贴图
+        const images = {
+          //前
+          f: 'images/cube/f.jpg',
+          //后
+          b: 'images/cube/b.jpg',
+          //上
+          u: 'images/cube/u.jpg',
+          //下
+          d: 'images/cube/d.jpg',
+          //左
+          l: 'images/cube/l.jpg',
+          //右
+          r: 'images/cube/r.jpg'
+        };
+
+        await initCubeTexture(gl, images);
+
+        var settings = initGUI({ cx: 0, cy: 0, cz: 2 });
+        window.gui.add(settings, 'cx', -2, 2);
+        window.gui.add(settings, 'cy', -2, 2);
+        window.gui.add(settings, 'cz', -2, 2);
+
+        function drawCube() {
+          gl.program = cubeProgram;
+          gl.useProgram(cubeProgram);
+          //如果新的深度值小于存储的值，则将通过模具测试
+          gl.depthFunc(gl.LESS);
+
+          initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
+          initArrBuffer(gl, 'aNormal', new Float32Array(flatArr(normals)), 3);
+          initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
+          gl.activeTexture(gl.TEXTURE0);
+          gl.uniform1i(gl.getUniformLocation(gl.program, 'uImage'), 0);
+
+          initModelViewMatrix(gl, settings);
+
+          gl.uniformMatrix4fv(
+            gl.getUniformLocation(gl.program, 'uProjectionMatrix'),
+            false,
+            projectionMatrix
+          );
+
+          gl.uniformMatrix4fv(gl.getUniformLocation(gl.program, 'uView'), false, viewMatrix);
+
+          gl.uniform3fv(gl.getUniformLocation(gl.program, 'uCameraPosition'), [
+            settings.cx,
+            settings.cy,
+            settings.cz
+          ]);
+
+          gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+        }
+
+        function drawEnv() {
+          gl.program = envProgram;
+          gl.useProgram(envProgram);
+          //如果新的深度值小于或等于存储的值，则将通过模具测试。
+          gl.depthFunc(gl.LEQUAL);
+          initArrBuffer(
+            gl,
+            'aPosition',
+            new Float32Array(flatArr([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1])),
+            2
+          );
+          gl.activeTexture(gl.TEXTURE0);
+          gl.uniform1i(gl.getUniformLocation(gl.program, 'uImage'), 0);
+          gl.uniformMatrix4fv(
+            gl.getUniformLocation(gl.program, 'uProjectionMatrix'),
+            false,
+            projectionMatrix
+          );
+          var uMatrix = mat4.create();
+          mat4.invert(uMatrix, mat4.multiply(uMatrix, projectionMatrix, viewMatrix));
+
+          gl.uniformMatrix4fv(gl.getUniformLocation(gl.program, 'uMatrix'), false, uMatrix);
+
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+        cleanGl(gl);
+        gl.enable(gl.CULL_FACE);
+        function drawScene() {
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+          //相机位置
+          mat4.lookAt(cameraMatrix, [settings.cx, settings.cy, settings.cz], [0, 0, 0], [0, 1, 0]);
+          //从相机矩阵创建视图
+          mat4.invert(viewMatrix, cameraMatrix);
+          //清除移动
+          viewMatrix[12] = 0;
+          viewMatrix[13] = 0;
+          viewMatrix[14] = 0;
+
+          drawCube();
+          drawEnv();
+
+          requestAnimationFrame(drawScene);
+        }
+        drawScene();
+      }
+    </script>
+  </body>
+</html>

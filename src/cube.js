@@ -94,5 +94,5 @@ faceColors.forEach((c, i) => {
   normals.push(n, n, n, n);
   textureCoordinates.push(...texCoord);
 });
-console.log(normals);
+
 var vertexCount = 36;

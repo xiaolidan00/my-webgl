@@ -34,5 +34,5 @@
 
 - panorama.html 全景图
 - reflectionCube.html 反射立方体
-- reflectionCube1.html 透明立方体+全景图
-- reflectionCube2.html 反射立方体+全景图
+- reflectionCube1.html 反射立方体+全景图
+- reflectionCube2.html 透明立方体+全景图
