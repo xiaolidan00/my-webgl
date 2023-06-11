@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../libs/gl-matrix-min.js"></script>
+    <script src="../libs/dat.gui.min.js"></script>
+
+    <script src="../libs/utils.js"></script>
+    <script src="./cube.js"></script>
+    <style>
+      #webgl,
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <canvas id="webgl"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      attribute vec3 aPosition;
+      attribute vec3 aColor;
+      uniform mat4 uProjectionMatrix;
+      uniform mat4 uModelViewMatrix;
+      varying lowp vec3 vColor;
+
+      void main() {
+        gl_Position = uProjectionMatrix*uModelViewMatrix * vec4(aPosition,1.0);
+        vColor=aColor;
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        varying lowp vec3 vColor;
+
+      void main() {
+         gl_FragColor = vec4(vColor,1.0);
+      }
+    </script>
+    <script>
+      function init() {
+        var gl = initGl('webgl');
+        var rotateAngle = initEvent(gl);
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var program = initShaderProgram(gl, vs, fs);
+
+        initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
+        initArrBuffer(gl, 'aColor', new Float32Array(flatArr(colors)), 3);
+
+        initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
+        initProjectionMatrix(gl);
+        function drawScene() {
+          cleanGl(gl);
+
+          var modelViewMatrix = mat4.create();
+          mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -6]);
+          mat4.rotateX(modelViewMatrix, modelViewMatrix, rotateAngle.x);
+          mat4.rotateY(modelViewMatrix, modelViewMatrix, rotateAngle.y);
+
+          gl.uniformMatrix4fv(
+            gl.getUniformLocation(gl.program, 'uModelViewMatrix'),
+            false,
+            modelViewMatrix
+          );
+          gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+          requestAnimationFrame(drawScene);
+        }
+
+        function initEvent(gl) {
+          var rotateAngle = {
+            x: 0, //绕y轴旋转角度
+            y: 0 //绕x轴旋转角度
+          };
+
+          var incAngle = 0.01; //旋转角度步长值，鼠标旋转灵敏度
+
+          var lastClickX, lastClickY; //上次触控点X,Y坐标
+          var ismoved = false; //是否移动标志位
+          //鼠标按下的监听
+          document.onmousedown = function (event) {
+            var x = event.clientX;
+            var y = event.clientY;
+            //如果鼠标在canvas里开始移动
+            var rect = (event.target || event.srcElement).getBoundingClientRect();
+            if (rect.left <= x && x < rect.right && rect.top <= y && y < rect.bottom) {
+              ismoved = true;
+              lastClickX = x;
+              lastClickY = y;
+            }
+          };
+          //鼠标抬起的监听
+          document.onmouseup = function (event) {
+            ismoved = false;
+          };
+          //鼠标移动时的监听
+          document.onmousemove = function (event) {
+            var x = event.clientX,
+              y = event.clientY;
+            if (ismoved) {
+              rotateAngle.y = rotateAngle.y + (x - lastClickX) * incAngle;
+              rotateAngle.x = rotateAngle.x + (y - lastClickY) * incAngle;
+            }
+            lastClickX = x;
+            lastClickY = y;
+          };
+          return rotateAngle;
+        }
+        drawScene();
+      }
+    </script>
+  </body>
+</html>

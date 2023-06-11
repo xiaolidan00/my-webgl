@@ -47,10 +47,13 @@ function initModelViewMatrix(gl, settings) {
   mat4.rotateZ(modelViewMatrix, modelViewMatrix, settings.angleZ);
 
   mat4.scale(modelViewMatrix, modelViewMatrix, [settings.scaleX, settings.scaleY, settings.scaleZ]);
-  gl.uniformMatrix4fv(
-    gl.getUniformLocation(gl.program, 'uModelViewMatrix'),
-    false,
-    modelViewMatrix
-  );
+  if (gl.getUniformLocation(gl.program, 'uModelViewMatrix')) {
+    gl.uniformMatrix4fv(
+      gl.getUniformLocation(gl.program, 'uModelViewMatrix'),
+      false,
+      modelViewMatrix
+    );
+  }
+
   return modelViewMatrix;
 }

@@ -7,6 +7,11 @@ function flatArr(arr) {
 function degToRad(angle) {
   return (angle * Math.PI) / 180;
 }
+function resizeGl(gl) {
+  gl.canvas.width = window.innerWidth;
+  gl.canvas.height = window.innerHeight;
+  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+}
 
 function initGl(id) {
   var canvas = document.getElementById(id);
@@ -16,9 +21,7 @@ function initGl(id) {
   var gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
   window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    resizeGl(gl);
   });
   return gl;
 }
@@ -28,7 +31,7 @@ function cleanGl(gl) {
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  resizeGl(gl);
 }
 
 function initArrBuffer(gl, code, value, perLen) {
@@ -211,4 +214,41 @@ async function initCubeTexture(gl, images) {
 
   gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
   gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+}
+//初始化帧缓冲和贴图
+function initFrameBuffer(gl) {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  //frame生成的贴图宽高要与截取webgl的宽高一致，否则有可能物体在画面外，我这里默认了整个场景
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    gl.canvas.width,
+    gl.canvas.height,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    null
+  );
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  var framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+  framebuffer.texture = texture;
+
+  var e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+
+  if (gl.FRAMEBUFFER_COMPLETE !== e) {
+    console.log('Frame buffer object is incomplete: ' + e.toString());
+
+    return;
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindTexture(texture, null);
+  return { framebuffer, texture };
 }

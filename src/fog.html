@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../libs/gl-matrix-min.js"></script>
+    <script src="../libs/dat.gui.min.js"></script>
+    <script src="../libs/utils.js"></script>
+    <script src="../libs/helper.js"></script>
+    <script src="./cube.js"></script>
+    <style>
+      #webgl,
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <canvas id="webgl"></canvas>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      precision mediump float;
+      attribute vec3 aPosition;
+      attribute vec3 aColor;
+      uniform mat4 uProjectionMatrix;
+      uniform mat4 uModelViewMatrix;
+      varying   vec3 vColor;
+      varying vec4 vPosition;
+
+      void main() {
+        vPosition=uModelViewMatrix * vec4(aPosition,1.0);
+        gl_Position = uProjectionMatrix*vPosition;
+        vColor=aColor;
+
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+            precision mediump float;
+            #define LOG2 1.442695
+      uniform vec3 uFogColor;//雾颜色
+      uniform float uFogDensity;//雾强度
+      varying  vec3 vColor;
+      varying vec4 vPosition;
+      void main() {
+
+        float fogDistance = length(vPosition.xyz );
+        float fogAmount = 1.0 - exp2(-uFogDensity * uFogDensity * fogDistance * fogDistance * LOG2);
+        fogAmount = clamp(fogAmount, 0.0, 1.0);
+
+        gl_FragColor = mix(vec4(vColor,1.0), vec4(uFogColor,1.0), fogAmount);
+      }
+    </script>
+    <script>
+      function init() {
+        var gl = initGl('webgl');
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var program = initShaderProgram(gl, vs, fs);
+        //开启正反面
+        gl.enable(gl.CULL_FACE);
+        initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 3);
+        initArrBuffer(gl, 'aColor', new Float32Array(flatArr(colors)), 3);
+
+        initElmtBuffer(gl, new Uint16Array(flatArr(indices)));
+        //雾颜色
+        gl.uniform3f(gl.getUniformLocation(program, 'uFogColor'), 0.1, 0.2, 0.4);
+        //雾强度
+        gl.uniform1f(gl.getUniformLocation(program, 'uFogDensity'), 0.2);
+
+        initProjectionMatrix(gl);
+        var settings = initGUI();
+
+        function drawScene() {
+          cleanGl(gl);
+          initModelViewMatrix(gl, settings);
+
+          gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+          requestAnimationFrame(drawScene);
+        }
+
+        drawScene();
+      }
+    </script>
+  </body>
+</html>

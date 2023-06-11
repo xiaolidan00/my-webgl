@@ -39,3 +39,13 @@
 - reflectionCube.html 反射立方体
 - reflectionCube1.html 反射立方体+全景图
 - reflectionCube2.html 透明立方体+全景图
+
+## 交互
+
+- actionRotate.html 旋转物体
+- actionPick.html 选中物体
+
+## 其他
+
+- fog.html 雾
+- shadow.html 阴影
