@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>素描效果滤镜</title>
+    <script src="../../libs/dat.gui.min.js"></script>
+
+    <script src="../../libs/utils.js"></script>
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+      div.action {
+        padding: 10px;
+      }
+      button {
+        background-color: dodgerblue;
+        color: white;
+        border: none;
+        height: 32px;
+        width: 100px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="action">
+      <img id="picture" />
+      <canvas id="webgl"></canvas>
+    </div>
+    <div class="action">
+      <input type="file" placeholder="选择图片" onchange="changeFile(this)" />
+      <button onclick="savePic()">保存图片</button>
+    </div>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      precision mediump float;
+      attribute vec2 aPosition;
+      attribute vec2 aTexCoord;
+      varying   vec2 vTexCoord;
+
+      void main() {
+       gl_Position = vec4( aPosition, 0.0, 1);
+        vTexCoord=aTexCoord;
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+            precision mediump float;
+      varying vec2 vTexCoord;
+      uniform sampler2D uTex;
+      uniform vec2 texSize;
+      uniform float lineRate;
+
+      void main() {
+          vec2 size = vec2( 2.5/ texSize.x, 2.5/ texSize.y);
+          float big = 0.0, small = 0.0, c;
+          //big取周围颜色绿色值之和
+          for(float x = -1.0; x <= 1.0; x += 1.0) {
+              for(float y = -1.0; y <= 1.0; y += 1.0) {
+                  c = texture2D(uTex, vTexCoord + size * vec2(x, y)).g;
+                  big += c;
+                  //small去当前颜色绿色值
+                  if(x == 0.0 || y == 0.0)
+                      small += c;
+              }
+          }
+          //计算边缘
+          float edge = max(0.0, big / 9.0 - small / 5.0);
+          gl_FragColor = vec4(1.0 - max(vec3(0.0), (edge * edge * lineRate * 1000.0)), 1.0);
+      }
+    </script>
+    <script>
+      var gui;
+      const webgl = document.getElementById('webgl');
+      const uniforms = {
+        lineRate: 3.0
+      };
+      const range = {
+        lineRate: [2, 6, 0.1]
+      };
+      async function init(imageUrl) {
+        var gl = initGl('webgl');
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var program = initShaderProgram(gl, vs, fs);
+
+        const textureCoord = [
+          [0.0, 0.0],
+          [1.0, 0.0],
+          [0.0, 1.0],
+          [0.0, 1.0],
+          [1.0, 0.0],
+          [1.0, 1.0]
+        ].reverse();
+
+        initArrBuffer(gl, 'aTexCoord', new Float32Array(flatArr(textureCoord)), 2);
+        var { texture, image } = await initTexture(gl, imageUrl);
+
+        const positions = [
+          [-1.0, 1.0],
+          [1.0, 1.0],
+          [-1.0, -1.0],
+          [-1.0, -1.0],
+          [1.0, 1.0],
+          [1.0, -1.0]
+        ].reverse();
+        initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 2);
+
+        gl.uniform2f(
+          gl.getUniformLocation(gl.program, 'texSize'),
+          gl.canvas.width,
+          gl.canvas.height
+        );
+        if (!gui) {
+          gui = new dat.GUI();
+          for (let k in uniforms) {
+            gui.add(uniforms, k, ...range[k]).onChange(drawScene);
+          }
+        }
+
+        //开启正反面
+        gl.enable(gl.CULL_FACE);
+        function drawScene() {
+          cleanGl(gl);
+          for (const k in uniforms) {
+            gl.uniform1f(gl.getUniformLocation(gl.program, k), uniforms[k]);
+          }
+          //画三角形
+          gl.drawArrays(gl.TRIANGLES, 0, positions.length);
+        }
+        drawScene();
+      }
+      function updatePic(url) {
+        const picture = document.getElementById('picture');
+        picture.src = url;
+        picture.onload = () => {
+          const s = 800 / picture.naturalHeight;
+          const w = picture.naturalWidth * s;
+          const h = 800;
+          webgl.width = w;
+          webgl.height = h;
+          webgl.style.width = w + 'px';
+          webgl.style.height = h + 'px';
+          picture.style.width = w + 'px';
+          picture.style.height = h + 'px';
+          init(picture.src);
+        };
+      }
+      function changeFile(dom) {
+        if (dom.files.length) {
+          updatePic(window.URL.createObjectURL(dom.files[0]));
+        }
+      }
+      function savePic() {
+        const a = document.createElement('a');
+
+        const fileName = new Date().getTime() + '.png';
+        let file = convertBase64UrlToFile(webgl.toDataURL('image/png'), fileName);
+        a.download = fileName;
+        a.href = window.URL.createObjectURL(file);
+        a.click();
+      }
+      updatePic('pic1.jpg');
+    </script>
+  </body>
+</html>

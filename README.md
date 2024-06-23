@@ -49,3 +49,14 @@
 
 - fog.html 雾
 - shadow.html 阴影
+
+# webgl高级图片滤镜
+
+- src/filters/light.html 美白效果滤镜
+- src/filters/contract.html 对比度效果滤镜
+- src/filters/blur.html 模糊效果滤镜
+- src/filters/soft.html 美白磨皮效果滤镜
+- src/filters/soft1.html 柔光磨皮效果滤镜
+- src/filters/lomo.html lomo风格滤镜
+- src/filters/line.html 素描风格滤镜
+- src/filters/paint.html 油画风格滤镜

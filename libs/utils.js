@@ -8,21 +8,21 @@ function degToRad(angle) {
   return (angle * Math.PI) / 180;
 }
 function resizeGl(gl) {
-  gl.canvas.width = window.innerWidth;
-  gl.canvas.height = window.innerHeight;
+  // gl.canvas.width = window.innerWidth;
+  // gl.canvas.height = window.innerHeight;
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 }
 
 function initGl(id) {
   var canvas = document.getElementById(id);
   canvas.style.background = 'black';
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  // canvas.width = window.innerWidth;
+  // canvas.height = window.innerHeight;
   var gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-  window.addEventListener('resize', () => {
-    resizeGl(gl);
-  });
+  // window.addEventListener('resize', () => {
+  //   resizeGl(gl);
+  // });
   return gl;
 }
 function cleanGl(gl) {
@@ -251,4 +251,16 @@ function initFrameBuffer(gl) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.bindTexture(texture, null);
   return { framebuffer, texture };
+}
+
+function convertBase64UrlToFile(base64, fileName) {
+  let parts = base64.split(';base64,');
+  let contentType = parts[0].split(':')[1];
+  let raw = window.atob(parts[1]);
+  let rawLength = raw.length;
+  let uInt8Array = new Uint8Array(rawLength);
+  for (let i = 0; i < rawLength; i++) {
+    uInt8Array[i] = raw.charCodeAt(i);
+  }
+  return new File([uInt8Array], fileName, { type: contentType });
 }

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lomo滤镜</title>
+    <script src="../../libs/dat.gui.min.js"></script>
+
+    <script src="../../libs/utils.js"></script>
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+      }
+      div.action {
+        padding: 10px;
+      }
+      button {
+        background-color: dodgerblue;
+        color: white;
+        border: none;
+        height: 32px;
+        width: 100px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="action">
+      <img id="picture" />
+      <canvas id="webgl"></canvas>
+    </div>
+    <div class="action">
+      <input type="file" placeholder="选择图片" onchange="changeFile(this)" />
+      <button onclick="savePic()">保存图片</button>
+    </div>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      precision mediump float;
+      attribute vec2 aPosition;
+      attribute vec2 aTexCoord;
+      varying   vec2 vTexCoord;
+
+      void main() {
+       gl_Position = vec4( aPosition, 0.0, 1);
+        vTexCoord=aTexCoord;
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+       precision mediump float;
+      //颜色RGB饱和度的权重
+      #define R_LU 0.3
+      #define G_LU 0.59
+      #define B_LU 0.11
+      #define SAT 2.2//饱和度
+       //uniform float R_LU ;
+       //uniform float G_LU ;
+       //uniform float B_LU ;
+       //uniform float SAT ;//饱和度
+
+       varying vec2 vTexCoord;
+       uniform sampler2D uTex;
+       uniform vec2 texSize;
+       uniform float centerX;
+       uniform float centerY;
+       uniform float radius;
+       uniform float exposure;//曝光
+
+       void main() {
+           vec2 center = vec2(centerX, centerY);
+
+
+           vec3 c0 = texture2D(uTex, vTexCoord).rgb, c;
+           //颜色饱和度
+           c.r = ((R_LU + (1.0 - R_LU) * SAT) * c0.r) + ((G_LU - G_LU * SAT) * c0.g) + ((B_LU - B_LU * SAT) * c0.b);
+           c.g = ((R_LU - R_LU * SAT) * c0.r) + ((G_LU + (1.0 - G_LU) * SAT) * c0.g) + ((B_LU - B_LU * SAT) * c0.b);
+           c.b = ((R_LU - R_LU * SAT) * c0.r) + ((G_LU - G_LU * SAT) * c0.g) + ((B_LU + (1.0 - B_LU) * SAT) * c0.b);
+
+           gl_FragColor = vec4((1.0 - distance(vTexCoord * texSize, center) / radius) * c * exposure , 1.0);
+       }
+    </script>
+
+    <script>
+      var gui;
+      const webgl = document.getElementById('webgl');
+      var uniforms, range;
+      async function init(imageUrl) {
+        var gl = initGl('webgl');
+        const vs = document.getElementById('vertexShader').innerText;
+
+        const fs = document.getElementById('fragmentShader').innerText;
+
+        var program = initShaderProgram(gl, vs, fs);
+
+        const textureCoord = [
+          [0.0, 0.0],
+          [1.0, 0.0],
+          [0.0, 1.0],
+          [0.0, 1.0],
+          [1.0, 0.0],
+          [1.0, 1.0]
+        ].reverse();
+
+        initArrBuffer(gl, 'aTexCoord', new Float32Array(flatArr(textureCoord)), 2);
+        var { texture, image } = await initTexture(gl, imageUrl);
+
+        const positions = [
+          [-1.0, 1.0],
+          [1.0, 1.0],
+          [-1.0, -1.0],
+          [-1.0, -1.0],
+          [1.0, 1.0],
+          [1.0, -1.0]
+        ].reverse();
+        initArrBuffer(gl, 'aPosition', new Float32Array(flatArr(positions)), 2);
+
+        gl.uniform2f(
+          gl.getUniformLocation(gl.program, 'texSize'),
+          gl.canvas.width,
+          gl.canvas.height
+        );
+        if (!gui) {
+          gui = new dat.GUI();
+          for (let k in uniforms) {
+            gui.add(uniforms, k, ...range[k]).onChange(drawScene);
+          }
+        }
+
+        //开启正反面
+        gl.enable(gl.CULL_FACE);
+        function drawScene() {
+          cleanGl(gl);
+          for (const k in uniforms) {
+            gl.uniform1f(gl.getUniformLocation(gl.program, k), uniforms[k]);
+          }
+          //画三角形
+          gl.drawArrays(gl.TRIANGLES, 0, positions.length);
+        }
+        drawScene();
+      }
+      function updatePic(url) {
+        const picture = document.getElementById('picture');
+        picture.src = url;
+        picture.onload = () => {
+          const s = 800 / picture.naturalHeight;
+          const w = picture.naturalWidth * s;
+          const h = 800;
+          webgl.width = w;
+          webgl.height = h;
+          webgl.style.width = w + 'px';
+          webgl.style.height = h + 'px';
+          picture.style.width = w + 'px';
+          picture.style.height = h + 'px';
+          uniforms = {
+            // R_LU: 0.3,
+            // G_LU: 0.3,
+            // B_LU: 0.4,
+            // SAT: 2.2,
+            radius: webgl.width * 0.85,
+            exposure: 1,
+            centerX: webgl.width * 0.5,
+            centerY: webgl.height * 0.2
+          };
+          range = {
+            // R_LU: [-3, 3, 0.1],
+            // G_LU: [-3, 3, 0.1],
+            // B_LU: [-3, 3, 0.1],
+            // SAT: [-3, 3, 0.1],
+            radius: [0.0, webgl.width, 1],
+            exposure: [0, 5, 0.1],
+            centerX: [0.0, webgl.width, 1],
+            centerY: [0.0, webgl.height, 1]
+          };
+          init(picture.src);
+        };
+      }
+      function changeFile(dom) {
+        if (dom.files.length) {
+          updatePic(window.URL.createObjectURL(dom.files[0]));
+        }
+      }
+      function savePic() {
+        const a = document.createElement('a');
+
+        const fileName = new Date().getTime() + '.png';
+        let file = convertBase64UrlToFile(webgl.toDataURL('image/png'), fileName);
+        a.download = fileName;
+        a.href = window.URL.createObjectURL(file);
+        a.click();
+      }
+      updatePic('pic1.jpg');
+    </script>
+  </body>
+</html>
