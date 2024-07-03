@@ -8,21 +8,20 @@ function degToRad(angle) {
   return (angle * Math.PI) / 180;
 }
 function resizeGl(gl) {
-  // gl.canvas.width = window.innerWidth;
-  // gl.canvas.height = window.innerHeight;
+  gl.canvas.width = gl.canvas.offsetWidth;
+  gl.canvas.height = gl.canvas.offsetHeight;
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 }
 
 function initGl(id) {
   var canvas = document.getElementById(id);
   canvas.style.background = 'black';
-  // canvas.width = window.innerWidth;
-  // canvas.height = window.innerHeight;
+
   var gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-  // window.addEventListener('resize', () => {
-  //   resizeGl(gl);
-  // });
+  resizeGl(gl);
+  window.addEventListener('resize', () => {
+    resizeGl(gl);
+  });
   return gl;
 }
 function cleanGl(gl) {
