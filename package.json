@@ -1,0 +1,12 @@
+{
+  "name": "my-webgl1",
+  "version": "1.0.0",
+  "description": "- translate1.html 顶点着色器加减平移\r - translate2.html glmatrix 矩阵平移",
+  "main": "createIndex.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
