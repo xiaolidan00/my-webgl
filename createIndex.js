@@ -52,12 +52,11 @@ data.forEach((a) => {
   if (a.url) {
     const path = 'src/' + a.url;
     list.push(`<li><a href="${path}" target="_blank">${a.title}</a></li>`);
-    readme.push(`### ${a.title}`);
-    readme.push('');
-    readme.push(`- [源码地址:${path}](${path})`);
-    readme.push(`- [预览效果](https://xiaolidan00.github.io/my-webgl/${path})`);
-    readme.push('');
+    readme.push(`- ${a.title}`);
+    readme.push(`   - [源码地址:${path}](${path})`);
+    readme.push(`   - [预览效果](https://xiaolidan00.github.io/my-webgl/${path})`);
   } else {
+    readme.push('');
     readme.push(`## ${a.title}`);
     readme.push('');
     list.push(`<h2>${a.title}</h2>`);
