@@ -1,0 +1,53 @@
+<html>
+  <head>
+    <title>混合模式</title>
+    <script src="12.js" type="text/javascript"></script>
+    <script src="minMatrix.js" type="text/javascript"></script>
+
+    <script id="vs" type="x-shader/x-vertex">
+      attribute vec3  position;
+      attribute vec4  color;
+      attribute vec2  textureCoord;
+      uniform   mat4  mvpMatrix;
+      uniform   float vertexAlpha;
+      varying   vec4  vColor;
+      varying   vec2  vTextureCoord;
+
+      void main(void){
+        vColor        = vec4(color.rgb, color.a * vertexAlpha);
+        vTextureCoord = textureCoord;
+        gl_Position   = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D texture;
+      uniform int       useTexture;
+      varying vec4      vColor;
+      varying vec2      vTextureCoord;
+
+      void main(void){
+        vec4 destColor = vec4(0.0);
+        if(bool(useTexture)){
+          vec4 smpColor = texture2D(texture, vTextureCoord);
+          destColor = vColor * smpColor;
+        }else{
+          destColor = vColor;
+        }
+        gl_FragColor = destColor;
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <p>
+      <input id="transparency" name="blend" type="radio" checked /> transparency
+      <input id="add" name="blend" type="radio" /> add
+    </p>
+    <p>
+      <input id="range" type="range" min="0" max="100" value="70" /> vertex alpha value (0% - 100%)
+    </p>
+  </body>
+</html>

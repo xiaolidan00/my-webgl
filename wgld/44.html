@@ -1,0 +1,49 @@
+<html>
+  <head>
+    <title>半球形照明</title>
+
+    <script src="minMatrixb.js" type="text/javascript"></script>
+    <script src="44.js" type="text/javascript"></script>
+
+    <script id="main_vs" type="x-shader/x-vertex">
+      attribute vec3  position;
+      attribute vec3  normal;
+      attribute vec4  color;
+      uniform   mat4  mMatrix;
+      uniform   mat4  mvpMatrix;
+      uniform   mat4  invMatrix;
+      uniform   vec3  skyDirection;
+      uniform   vec3  lightDirection;
+      uniform   vec3  eyePosition;
+      uniform   vec4  skyColor;
+      uniform   vec4  groundColor;
+      varying   vec4  vColor;
+
+      void main(void){
+        vec3  invSky     = normalize(invMatrix * vec4(skyDirection, 0.0)).xyz;
+        vec3  invLight   = normalize(invMatrix * vec4(lightDirection, 0.0)).xyz;
+        vec3  invEye     = normalize(invMatrix * vec4(eyePosition, 0.0)).xyz;
+        vec3  halfLE     = normalize(invLight + invEye);
+        float diffuse    = clamp(dot(normal, invLight), 0.1, 1.0);
+        float specular   = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 50.0);
+        float hemisphere = (dot(normal, invSky) + 1.0) * 0.5;
+        vec4  ambient    = mix(groundColor, skyColor, hemisphere);
+        vColor           = color * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0) + ambient;
+        gl_Position      = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="main_fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec4  vColor;
+
+      void main(void){
+        gl_FragColor = vColor;
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+  </body>
+</html>

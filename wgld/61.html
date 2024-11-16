@@ -1,0 +1,84 @@
+<html>
+  <head>
+    <title>大量粒子</title>
+
+    <script src="minMatrixb.js" type="text/javascript"></script>
+    <script src="61.js" type="text/javascript"></script>
+
+    <script id="point_vs" type="x-shader/x-vertex">
+      attribute float index;
+      uniform vec2 resolution;
+      uniform sampler2D texture;
+      uniform float pointScale;
+      void main(){
+        vec2 p = vec2(
+          mod(index, resolution.x) / resolution.x,
+          floor(index / resolution.x) / resolution.y
+        );
+        vec4 t = texture2D(texture, p);
+        gl_Position  = vec4(t.xy, 0.0, 1.0);
+        gl_PointSize = 0.1 + pointScale;
+      }
+    </script>
+
+    <script id="point_fs" type="x-shader/x-fragment">
+      precision mediump float;
+      uniform vec4 ambient;
+      void main(){
+        gl_FragColor = ambient;
+      }
+    </script>
+
+    <script id="velocity_vs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      void main(){
+        gl_Position = vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="velocity_fs" type="x-shader/x-fragment">
+      precision mediump float;
+      uniform vec2 resolution;
+      uniform sampler2D texture;
+      uniform vec2 mouse;
+      uniform bool mouseFlag;
+      uniform float velocity;
+      const float SPEED = 0.05;
+      void main(){
+        vec2 p = gl_FragCoord.xy / resolution;
+        vec4 t = texture2D(texture, p);
+        vec2 v = normalize(mouse - t.xy) * 0.2;
+        vec2 w = normalize(v + t.zw);
+        vec4 destColor = vec4(t.xy + w * SPEED * velocity, w);
+        if(!mouseFlag){destColor.zw = t.zw;}
+        gl_FragColor = destColor;
+      }
+    </script>
+
+    <script id="default_vs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      void main(){
+        gl_Position = vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="default_fs" type="x-shader/x-fragment">
+      precision mediump float;
+      uniform vec2 resolution;
+      void main(){
+        vec2 p = (gl_FragCoord.xy / resolution) * 2.0 - 1.0;
+        gl_FragColor = vec4(p, 0.0, 0.0);
+      }
+    </script>
+
+    <style>
+      * {
+        margin: 0 auto;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+  </body>
+</html>

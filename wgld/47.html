@@ -1,0 +1,87 @@
+<html>
+  <head>
+    <title>MOSAIC 过滤器</title>
+
+    <script src="minMatrixb.js" type="text/javascript"></script>
+    <script src="47.js" type="text/javascript"></script>
+
+    <script id="vs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      attribute vec3 normal;
+      attribute vec4 color;
+      uniform   mat4 mvpMatrix;
+      uniform   mat4 invMatrix;
+      uniform   vec3 lightDirection;
+      uniform   vec3 eyeDirection;
+      uniform   vec4 ambientColor;
+      varying   vec4 vColor;
+
+      void main(void){
+        vec3  invLight = normalize(invMatrix * vec4(lightDirection, 0.0)).xyz;
+        vec3  invEye   = normalize(invMatrix * vec4(eyeDirection, 0.0)).xyz;
+        vec3  halfLE   = normalize(invLight + invEye);
+        float diffuse  = clamp(dot(normal, invLight), 0.0, 1.0);
+        float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 50.0);
+        vec4  amb      = color * ambientColor;
+        vColor         = amb * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0);
+        gl_Position    = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec4 vColor;
+
+      void main(void){
+        gl_FragColor = vColor;
+      }
+    </script>
+
+    <script id="ovs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      attribute vec2 texCoord;
+      uniform   mat4 mvpMatrix;
+      varying   vec2 vTexCoord;
+
+      void main(void){
+        vTexCoord   = texCoord;
+        gl_Position = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="ofs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D texture;
+      varying vec2      vTexCoord;
+
+      const float tFrag = 1.0 / 512.0;
+      const float nFrag = 1.0 / 64.0;
+
+      void main(void){
+        vec4  destColor = vec4(0.0);
+        vec2  fc = vec2(gl_FragCoord.s, 512.0 - gl_FragCoord.t);
+        float offsetX = mod(fc.s, 8.0);
+        float offsetY = mod(fc.t, 8.0);
+
+        for(float x = 0.0; x <= 7.0; x += 1.0){
+          for(float y = 0.0; y <= 7.0; y += 1.0){
+            destColor += texture2D(texture, (fc + vec2(x - offsetX, y - offsetY)) * tFrag);
+          }
+        }
+        gl_FragColor = destColor * nFrag;
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <p>
+      <select id="select">
+        <option value="render">render</option>
+        <option value="texture1">texture 1</option>
+        <option value="texture2">texture 2</option>
+      </select>
+    </p>
+  </body>
+</html>

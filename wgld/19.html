@@ -1,0 +1,51 @@
+<html>
+  <head>
+    <title>贴图点线</title>
+
+    <script src="minMatrixb.js" type="text/javascript"></script>
+    <script src="19.js" type="text/javascript"></script>
+    <script id="vs" type="x-shader/x-vertex">
+      attribute vec3  position;
+      attribute vec4  color;
+      uniform   mat4  mvpMatrix;
+      uniform   float pointSize;
+      varying   vec4  vColor;
+
+      void main(void){
+        vColor       = color;
+        gl_Position  = mvpMatrix * vec4(position, 1.0);
+        gl_PointSize = pointSize;
+      }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D texture;
+      uniform int       useTexture;
+      varying vec4      vColor;
+
+      void main(void){
+        vec4 smpColor = vec4(1.0);
+        if(bool(useTexture)){
+          smpColor = texture2D(texture, gl_PointCoord);
+        }
+        if(smpColor.a == 0.0){
+          discard;
+        }else{
+          gl_FragColor = vColor * smpColor;
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <p>
+      <input id="point_size" type="range" value="10" min="10" max="320" /> point size (1 to 32
+      pixels)
+    </p>
+    <p><input id="lines" type="radio" name="line" checked /> gl.LINES</p>
+    <p><input id="line_strip" type="radio" name="line" /> gl.LINE_STRIP</p>
+    <p><input id="line_loop" type="radio" name="line" /> gl.LINE_LOOP</p>
+  </body>
+</html>

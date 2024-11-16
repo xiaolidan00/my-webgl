@@ -1,0 +1,247 @@
+<html>
+  <head>
+    <title>混合模式类型</title>
+    <script src="13.js" type="text/javascript"></script>
+    <script src="minMatrix.js" type="text/javascript"></script>
+
+    <script id="vs" type="x-shader/x-vertex">
+            attribute vec3  position;
+      attribute vec4  color;
+      attribute vec2  textureCoord;
+      uniform   mat4  mvpMatrix;
+      uniform   float vertexAlpha;
+      varying   vec4  vColor;
+      varying   vec2  vTextureCoord;
+
+      void main(void){
+      	vColor        = vec4(color.rgb, color.a * vertexAlpha);
+      	vTextureCoord = textureCoord;
+      	gl_Position   = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D texture;
+      uniform int       useTexture;
+      varying vec4      vColor;
+      varying vec2      vTextureCoord;
+
+      void main(void){
+        vec4 destColor = vec4(0.0);
+        if(bool(useTexture)){
+          vec4 smpColor = texture2D(texture, vTextureCoord);
+          destColor = vColor * smpColor;
+        }else{
+          destColor = vColor;
+        }
+        gl_FragColor = destColor;
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div  >
+			<div style="width: 100%; border-bottom: 1px solid silver;">
+				<p><em>context clear color</em></p>
+				<p>
+					red <input id="rangeBgRed" type="range" min="0" max="100" value="0">
+					green <input id="rangeBgGreen" type="range" min="0" max="100" value="70">
+					blue <input id="rangeBgBlue" type="range" min="0" max="100" value="70">
+					alpha <input id="rangeBgAlpha" type="range" min="0" max="100" value="100">
+				</p>
+				<p><em>blend constant color</em></p>
+				<p>
+					red <input id="rangeBcRed" type="range" min="0" max="100" value="0">
+					green <input id="rangeBcGreen" type="range" min="0" max="100" value="0">
+					blue <input id="rangeBcBlue" type="range" min="0" max="100" value="0">
+					alpha <input id="rangeBcAlpha" type="range" min="0" max="100" value="100">
+				</p>
+			</div>
+			<div style="float: left; width: 45%; border-right: 1px solid silver;">
+				<p><em>model 1</em></p>
+				<p>
+					<input id="m1Blend" type="checkbox"> enable blend
+				</p>
+				<p>
+					vertex Alpha <input id="rangeM1VertexAlpha" type="range" min="0" max="100" value="100"> (0% - 100%)
+				</p>
+				<p><em>color equation</em></p>
+				<select id="m1cEquation">
+					<option selected>gl.FUNC_ADD</option>
+					<option>gl.FUNC_SUBTRACT</option>
+					<option>gl.FUNC_REVERSE_SUBTRACT</option>
+				</select>
+				<p><em>alpha equation</em></p>
+				<select id="m1aEquation">
+					<option selected>gl.FUNC_ADD</option>
+					<option>gl.FUNC_SUBTRACT</option>
+					<option>gl.FUNC_REVERSE_SUBTRACT</option>
+				</select>
+				<p><em>source color blend factor</em></p>
+				<select id="m1cSrcBlendFunc">
+					<option>gl.ZERO</option>
+					<option selected>gl.ONE</option>
+					<option>gl.SRC_COLOR</option>
+					<option>gl.DST_COLOR</option>
+					<option>gl.ONE_MINUS_SRC_COLOR</option>
+					<option>gl.ONE_MINUS_DST_COLOR</option>
+					<option>gl.SRC_ALPHA</option>
+					<option>gl.DST_ALPHA</option>
+					<option>gl.ONE_MINUS_SRC_ALPHA</option>
+					<option>gl.ONE_MINUS_DST_ALPHA</option>
+					<option>gl.CONSTANT_COLOR</option>
+					<option>gl.ONE_MINUS_CONSTANT_COLOR</option>
+					<option>gl.CONSTANT_ALPHA</option>
+					<option>gl.ONE_MINUS_CONSTANT_ALPHA</option>
+					<option>gl.SRC_ALPHA_SATURATE</option>
+				</select>
+				<p><em>destination color blend factor</em></p>
+				<select id="m1cDstBlendFunc">
+					<option selected>gl.ZERO</option>
+					<option>gl.ONE</option>
+					<option>gl.SRC_COLOR</option>
+					<option>gl.DST_COLOR</option>
+					<option>gl.ONE_MINUS_SRC_COLOR</option>
+					<option>gl.ONE_MINUS_DST_COLOR</option>
+					<option>gl.SRC_ALPHA</option>
+					<option>gl.DST_ALPHA</option>
+					<option>gl.ONE_MINUS_SRC_ALPHA</option>
+					<option>gl.ONE_MINUS_DST_ALPHA</option>
+					<option>gl.CONSTANT_COLOR</option>
+					<option>gl.ONE_MINUS_CONSTANT_COLOR</option>
+					<option>gl.CONSTANT_ALPHA</option>
+					<option>gl.ONE_MINUS_CONSTANT_ALPHA</option>
+				</select>
+				<p><em>source alpha blend factor</em></p>
+				<select id="m1aSrcBlendFunc">
+					<option>gl.ZERO</option>
+					<option selected>gl.ONE</option>
+					<option>gl.SRC_COLOR</option>
+					<option>gl.DST_COLOR</option>
+					<option>gl.ONE_MINUS_SRC_COLOR</option>
+					<option>gl.ONE_MINUS_DST_COLOR</option>
+					<option>gl.SRC_ALPHA</option>
+					<option>gl.DST_ALPHA</option>
+					<option>gl.ONE_MINUS_SRC_ALPHA</option>
+					<option>gl.ONE_MINUS_DST_ALPHA</option>
+					<option>gl.CONSTANT_COLOR</option>
+					<option>gl.ONE_MINUS_CONSTANT_COLOR</option>
+					<option>gl.CONSTANT_ALPHA</option>
+					<option>gl.ONE_MINUS_CONSTANT_ALPHA</option>
+					<option>gl.SRC_ALPHA_SATURATE</option>
+				</select>
+				<p><em>destination alpha blend factor</em></p>
+				<select id="m1aDstBlendFunc">
+					<option selected>gl.ZERO</option>
+					<option>gl.ONE</option>
+					<option>gl.SRC_COLOR</option>
+					<option>gl.DST_COLOR</option>
+					<option>gl.ONE_MINUS_SRC_COLOR</option>
+					<option>gl.ONE_MINUS_DST_COLOR</option>
+					<option>gl.SRC_ALPHA</option>
+					<option>gl.DST_ALPHA</option>
+					<option>gl.ONE_MINUS_SRC_ALPHA</option>
+					<option>gl.ONE_MINUS_DST_ALPHA</option>
+					<option>gl.CONSTANT_COLOR</option>
+					<option>gl.ONE_MINUS_CONSTANT_COLOR</option>
+					<option>gl.CONSTANT_ALPHA</option>
+					<option>gl.ONE_MINUS_CONSTANT_ALPHA</option>
+				</select>
+			</div>
+			<div style="float: left; width: 45%;">
+				<p><em>model 2</em></p>
+				<p>
+					<input id="m2Blend" type="checkbox" checked> enable blend
+				</p>
+				<p>
+					vertex Alpha <input id="rangeM2VertexAlpha" type="range" min="0" max="100" value="50"> (0% - 100%)
+				</p>
+				<p><em>color equation</em></p>
+				<select id="m2cEquation">
+					<option selected>gl.FUNC_ADD</option>
+					<option>gl.FUNC_SUBTRACT</option>
+					<option>gl.FUNC_REVERSE_SUBTRACT</option>
+				</select>
+				<p><em>alpha equation</em></p>
+				<select id="m2aEquation">
+					<option selected>gl.FUNC_ADD</option>
+					<option>gl.FUNC_SUBTRACT</option>
+					<option>gl.FUNC_REVERSE_SUBTRACT</option>
+				</select>
+				<p><em>source color blend factor</em></p>
+				<select id="m2cSrcBlendFunc">
+					<option>gl.ZERO</option>
+					<option>gl.ONE</option>
+					<option>gl.SRC_COLOR</option>
+					<option>gl.DST_COLOR</option>
+					<option>gl.ONE_MINUS_SRC_COLOR</option>
+					<option>gl.ONE_MINUS_DST_COLOR</option>
+					<option selected>gl.SRC_ALPHA</option>
+					<option>gl.DST_ALPHA</option>
+					<option>gl.ONE_MINUS_SRC_ALPHA</option>
+					<option>gl.ONE_MINUS_DST_ALPHA</option>
+					<option>gl.CONSTANT_COLOR</option>
+					<option>gl.ONE_MINUS_CONSTANT_COLOR</option>
+					<option>gl.CONSTANT_ALPHA</option>
+					<option>gl.ONE_MINUS_CONSTANT_ALPHA</option>
+					<option>gl.SRC_ALPHA_SATURATE</option>
+				</select>
+				<p><em>destination color blend factor</em></p>
+				<select id="m2cDstBlendFunc">
+					<option selected>gl.ZERO</option>
+					<option>gl.ONE</option>
+					<option>gl.SRC_COLOR</option>
+					<option>gl.DST_COLOR</option>
+					<option>gl.ONE_MINUS_SRC_COLOR</option>
+					<option>gl.ONE_MINUS_DST_COLOR</option>
+					<option>gl.SRC_ALPHA</option>
+					<option>gl.DST_ALPHA</option>
+					<option selected>gl.ONE_MINUS_SRC_ALPHA</option>
+					<option>gl.ONE_MINUS_DST_ALPHA</option>
+					<option>gl.CONSTANT_COLOR</option>
+					<option>gl.ONE_MINUS_CONSTANT_COLOR</option>
+					<option>gl.CONSTANT_ALPHA</option>
+					<option>gl.ONE_MINUS_CONSTANT_ALPHA</option>
+					<option>gl.SRC_ALPHA_SATURATE</option>
+				</select>
+				<p><em>source alpha blend factor</em></p>
+				<select id="m2aSrcBlendFunc">
+					<option>gl.ZERO</option>
+					<option selected>gl.ONE</option>
+					<option>gl.SRC_COLOR</option>
+					<option>gl.DST_COLOR</option>
+					<option>gl.ONE_MINUS_SRC_COLOR</option>
+					<option>gl.ONE_MINUS_DST_COLOR</option>
+					<option>gl.SRC_ALPHA</option>
+					<option>gl.DST_ALPHA</option>
+					<option>gl.ONE_MINUS_SRC_ALPHA</option>
+					<option>gl.ONE_MINUS_DST_ALPHA</option>
+					<option>gl.CONSTANT_COLOR</option>
+					<option>gl.ONE_MINUS_CONSTANT_COLOR</option>
+					<option>gl.CONSTANT_ALPHA</option>
+					<option>gl.ONE_MINUS_CONSTANT_ALPHA</option>
+					<option>gl.SRC_ALPHA_SATURATE</option>
+				</select>
+				<p><em>destination alpha blend factor</em></p>
+				<select id="m2aDstBlendFunc">
+					<option>gl.ZERO</option>
+					<option selected>gl.ONE</option>
+					<option>gl.SRC_COLOR</option>
+					<option>gl.DST_COLOR</option>
+					<option>gl.ONE_MINUS_SRC_COLOR</option>
+					<option>gl.ONE_MINUS_DST_COLOR</option>
+					<option>gl.SRC_ALPHA</option>
+					<option>gl.DST_ALPHA</option>
+					<option>gl.ONE_MINUS_SRC_ALPHA</option>
+					<option>gl.ONE_MINUS_DST_ALPHA</option>
+					<option>gl.CONSTANT_COLOR</option>
+					<option>gl.ONE_MINUS_CONSTANT_COLOR</option>
+					<option>gl.CONSTANT_ALPHA</option>
+					<option>gl.ONE_MINUS_CONSTANT_ALPHA</option>
+					<option>gl.SRC_ALPHA_SATURATE</option>
+				</select>
+			</div>
+  </body>
+</html>

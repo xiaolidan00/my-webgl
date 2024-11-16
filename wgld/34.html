@@ -1,0 +1,135 @@
+<html>
+  <head>
+    <title>高分辨率阴影贴图</title>
+
+    <script src="minMatrixb.js" type="text/javascript"></script>
+    <script src="34.js" type="text/javascript"></script>
+
+    <script id="dvs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      uniform   mat4 mvpMatrix;
+
+      varying   vec4 vPosition;
+
+      void main(void){
+        vPosition = mvpMatrix * vec4(position, 1.0);
+        gl_Position = vPosition;
+      }
+    </script>
+
+    <script id="dfs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform bool depthBuffer;
+
+      varying vec4 vPosition;
+
+      vec4 convRGBA(float depth){
+        float r = depth;
+        float g = fract(r * 255.0);
+        float b = fract(g * 255.0);
+        float a = fract(b * 255.0);
+        float coef = 1.0 / 255.0;
+        r -= g * coef;
+        g -= b * coef;
+        b -= a * coef;
+        return vec4(r, g, b, a);
+      }
+
+      void main(void){
+        vec4 convColor;
+        if(depthBuffer){
+          convColor = convRGBA(vPosition.z / vPosition.w);
+      //		convColor = convRGBA(gl_FragCoord.z);
+        }else{
+          float near = 0.1;
+          float far  = 150.0;
+          float linerDepth = 1.0 / (far - near);
+          linerDepth *= length(vPosition);
+          convColor = convRGBA(linerDepth);
+        }
+        gl_FragColor = convColor;
+      }
+    </script>
+
+    <script id="svs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      attribute vec3 normal;
+      attribute vec4 color;
+      uniform   mat4 mMatrix;
+      uniform   mat4 mvpMatrix;
+      uniform   mat4 tMatrix;
+      uniform   mat4 lgtMatrix;
+      varying   vec3 vPosition;
+      varying   vec3 vNormal;
+      varying   vec4 vColor;
+      varying   vec4 vTexCoord;
+      varying   vec4 vDepth;
+
+      void main(void){
+        vPosition   = (mMatrix * vec4(position, 1.0)).xyz;
+        vNormal     = normal;
+        vColor      = color;
+        vTexCoord   = tMatrix * vec4(vPosition, 1.0);
+        vDepth      = lgtMatrix * vec4(position, 1.0);
+        gl_Position = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="sfs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform mat4      invMatrix;
+      uniform vec3      lightPosition;
+      uniform sampler2D texture;
+      uniform bool      depthBuffer;
+      varying vec3      vPosition;
+      varying vec3      vNormal;
+      varying vec4      vColor;
+      varying vec4      vTexCoord;
+      varying vec4      vDepth;
+
+      float restDepth(vec4 RGBA){
+        const float rMask = 1.0;
+        const float gMask = 1.0 / 255.0;
+        const float bMask = 1.0 / (255.0 * 255.0);
+        const float aMask = 1.0 / (255.0 * 255.0 * 255.0);
+        float depth = dot(RGBA, vec4(rMask, gMask, bMask, aMask));
+        return depth;
+      }
+
+      void main(void){
+        vec3  light     = lightPosition - vPosition;
+        vec3  invLight  = normalize(invMatrix * vec4(light, 0.0)).xyz;
+        float diffuse   = clamp(dot(vNormal, invLight), 0.2, 1.0);
+        float shadow    = restDepth(texture2DProj(texture, vTexCoord));
+        vec4 depthColor = vec4(1.0);
+        if(vDepth.w > 0.0){
+          if(depthBuffer){
+            float lightCoord = vDepth.z / vDepth.w;
+            if(lightCoord - 0.001 > shadow){
+              depthColor  = vec4(0.5, 0.5, 0.5, 1.0);
+            }
+          }else{
+            float near = 0.1;
+            float far  = 150.0;
+            float linerDepth = 1.0 / (far - near);
+            linerDepth *= length(vPosition.xyz - lightPosition);
+            if(linerDepth - 0.0001 > shadow){
+              depthColor  = vec4(0.5, 0.5, 0.5, 1.0);
+            }
+          }
+        }
+        gl_FragColor = vColor * vec4(vec3(diffuse), 1.0) * depthColor;
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <p><input id="range" type="range" max="60" min="30" value="45" /> light scale</p>
+    <p>
+      <input type="radio" name="type" id="depthBuffer" checked /> gl_FragCoord.z
+      <input type="radio" name="type" id="vertexPosition" /> vertex position
+    </p>
+  </body>
+</html>

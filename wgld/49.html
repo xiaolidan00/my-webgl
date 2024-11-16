@@ -1,0 +1,106 @@
+<html>
+  <head>
+    <title>Godray 过滤器</title>
+
+    <script src="minMatrixb.js" type="text/javascript"></script>
+    <script src="49.js" type="text/javascript"></script>
+
+    <script id="lighting_vs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      attribute vec3 normal;
+      attribute vec4 color;
+      uniform   mat4 mvpMatrix;
+      uniform   mat4 invMatrix;
+      uniform   vec3 lightDirection;
+      uniform   vec3 eyeDirection;
+      uniform   vec4 ambientColor;
+      uniform   bool mask;
+      varying   vec4 vColor;
+
+      void main(void){
+        if(mask){
+          vColor = vec4(vec3(0.0), 1.0);
+        }else{
+          vec3  invLight = normalize(invMatrix * vec4(lightDirection, 0.0)).xyz;
+          vec3  invEye   = normalize(invMatrix * vec4(eyeDirection, 0.0)).xyz;
+          vec3  halfLE   = normalize(invLight + invEye);
+          float diffuse  = clamp(dot(normal, invLight), 0.1, 1.0);
+          float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 50.0);
+          vec4  amb      = color * ambientColor;
+          vColor         = amb * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0);
+        }
+        gl_Position = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="lighting_fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec4 vColor;
+
+      void main(void){
+        gl_FragColor = vColor;
+      }
+    </script>
+
+    <script id="zoomblur_vs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      attribute vec2 texCoord;
+      uniform   mat4 mvpMatrix;
+      varying   vec2 vTexCoord;
+
+      void main(void){
+        vTexCoord   = texCoord;
+        gl_Position = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="zoomblur_fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D texture;
+      uniform float     strength;
+      uniform vec2      center;
+      varying vec2      vTexCoord;
+
+      const float tFrag = 1.0 / 512.0;
+      const float nFrag = 1.0 / 30.0;
+
+      float rnd(vec3 scale, float seed){
+        return fract(sin(dot(gl_FragCoord.stp + seed, scale)) * 43758.5453 + seed);
+      }
+
+      void main(void){
+        vec3  destColor = vec3(0.0);
+        float random = rnd(vec3(12.9898, 78.233, 151.7182), 0.0);
+        vec2  fc = vec2(gl_FragCoord.s, 512.0 - gl_FragCoord.t);
+        vec2  fcc = fc - center;
+        float totalWeight = 0.0;
+
+        for(float i = 0.0; i <= 30.0; i++){
+          float percent = (i + random) * nFrag;
+          float weight = percent - percent * percent;
+          vec2  t = fc - fcc * percent * strength * nFrag;
+          destColor += texture2D(texture, t * tFrag).rgb * weight;
+          totalWeight += weight;
+        }
+        gl_FragColor = vec4(destColor / totalWeight, 1.0);
+      }
+    </script>
+
+    <script id="ortho_fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D texture;
+      varying vec2      vTexCoord;
+
+      void main(void){
+        gl_FragColor = texture2D(texture, vTexCoord);
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <p><input type="range" id="range" min="0" max="100" value="50" /> strength</p>
+  </body>
+</html>

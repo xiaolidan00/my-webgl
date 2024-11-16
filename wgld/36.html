@@ -1,0 +1,133 @@
+<html>
+  <head>
+    <title>SOBEL 滤波器检测边缘（内核矩阵）</title>
+
+    <script src="minMatrixb.js" type="text/javascript"></script>
+    <script src="36.js" type="text/javascript"></script>
+
+    <script id="vs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      attribute vec3 normal;
+      attribute vec4 color;
+      uniform   mat4 mvpMatrix;
+      uniform   mat4 invMatrix;
+      uniform   vec3 lightDirection;
+      uniform   vec3 eyeDirection;
+      uniform   vec4 ambientColor;
+      varying   vec4 vColor;
+
+      void main(void){
+        vec3  invLight = normalize(invMatrix * vec4(lightDirection, 0.0)).xyz;
+        vec3  invEye   = normalize(invMatrix * vec4(eyeDirection, 0.0)).xyz;
+        vec3  halfLE   = normalize(invLight + invEye);
+        float diffuse  = clamp(dot(normal, invLight), 0.0, 1.0);
+        float specular = pow(clamp(dot(normal, halfLE), 0.0, 1.0), 50.0);
+        vec4  amb      = color * ambientColor;
+        vColor         = amb * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0);
+        gl_Position    = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec4 vColor;
+
+      void main(void){
+        gl_FragColor = vColor;
+      }
+    </script>
+
+    <script id="ovs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      attribute vec2 texCoord;
+      uniform   mat4 mvpMatrix;
+      varying   vec2 vTexCoord;
+
+      void main(void){
+        vTexCoord   = texCoord;
+        gl_Position = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="ofs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D texture;
+      uniform bool      sobel;
+      uniform bool      sobelGray;
+      uniform float     hCoef[9];
+      uniform float     vCoef[9];
+      varying vec2      vTexCoord;
+
+      const float redScale   = 0.298912;
+      const float greenScale = 0.586611;
+      const float blueScale  = 0.114478;
+      const vec3  monochromeScale = vec3(redScale, greenScale, blueScale);
+
+      void main(void){
+        vec2 offset[9];
+        offset[0] = vec2(-1.0, -1.0);
+        offset[1] = vec2( 0.0, -1.0);
+        offset[2] = vec2( 1.0, -1.0);
+        offset[3] = vec2(-1.0,  0.0);
+        offset[4] = vec2( 0.0,  0.0);
+        offset[5] = vec2( 1.0,  0.0);
+        offset[6] = vec2(-1.0,  1.0);
+        offset[7] = vec2( 0.0,  1.0);
+        offset[8] = vec2( 1.0,  1.0);
+        float tFrag = 1.0 / 512.0;
+        vec2  fc = vec2(gl_FragCoord.s, 512.0 - gl_FragCoord.t);
+        vec3  horizonColor = vec3(0.0);
+        vec3  verticalColor = vec3(0.0);
+        vec4  destColor = vec4(0.0);
+
+        horizonColor  += texture2D(texture, (fc + offset[0]) * tFrag).rgb * hCoef[0];
+        horizonColor  += texture2D(texture, (fc + offset[1]) * tFrag).rgb * hCoef[1];
+        horizonColor  += texture2D(texture, (fc + offset[2]) * tFrag).rgb * hCoef[2];
+        horizonColor  += texture2D(texture, (fc + offset[3]) * tFrag).rgb * hCoef[3];
+        horizonColor  += texture2D(texture, (fc + offset[4]) * tFrag).rgb * hCoef[4];
+        horizonColor  += texture2D(texture, (fc + offset[5]) * tFrag).rgb * hCoef[5];
+        horizonColor  += texture2D(texture, (fc + offset[6]) * tFrag).rgb * hCoef[6];
+        horizonColor  += texture2D(texture, (fc + offset[7]) * tFrag).rgb * hCoef[7];
+        horizonColor  += texture2D(texture, (fc + offset[8]) * tFrag).rgb * hCoef[8];
+
+        verticalColor += texture2D(texture, (fc + offset[0]) * tFrag).rgb * vCoef[0];
+        verticalColor += texture2D(texture, (fc + offset[1]) * tFrag).rgb * vCoef[1];
+        verticalColor += texture2D(texture, (fc + offset[2]) * tFrag).rgb * vCoef[2];
+        verticalColor += texture2D(texture, (fc + offset[3]) * tFrag).rgb * vCoef[3];
+        verticalColor += texture2D(texture, (fc + offset[4]) * tFrag).rgb * vCoef[4];
+        verticalColor += texture2D(texture, (fc + offset[5]) * tFrag).rgb * vCoef[5];
+        verticalColor += texture2D(texture, (fc + offset[6]) * tFrag).rgb * vCoef[6];
+        verticalColor += texture2D(texture, (fc + offset[7]) * tFrag).rgb * vCoef[7];
+        verticalColor += texture2D(texture, (fc + offset[8]) * tFrag).rgb * vCoef[8];
+
+        if(sobel){
+          destColor = vec4(vec3(sqrt(horizonColor * horizonColor + verticalColor * verticalColor)), 1.0);
+        }else{
+          destColor = texture2D(texture, vTexCoord);
+        }
+        if(sobelGray){
+          float grayColor = dot(destColor.rgb, monochromeScale);
+          destColor = vec4(vec3(grayColor), 1.0);
+        }
+        gl_FragColor = destColor;
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <p>
+      <input id="color" name="radio" type="radio" checked /> color
+      <input id="sobel" name="radio" type="radio" /> sobel
+      <input id="sobelGray" name="radio" type="radio" /> sobel + gray
+    </p>
+    <p>
+      <select id="select">
+        <option value="render">render</option>
+        <option value="texture1">texture 1</option>
+        <option value="texture2">texture 2</option>
+      </select>
+    </p>
+  </body>
+</html>

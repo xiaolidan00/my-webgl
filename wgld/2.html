@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../libs/gl-matrix-min.js"></script>
+    <script id="vshader" type="x-shader/x-vertex">
+      //顶点着色器
+      attribute vec3 position;
+      attribute vec4 color;
+      uniform mat4 mvpMatrix;
+      varying vec4 vColor;
+
+      void main(void) {
+          vColor = color;
+          gl_Position = mvpMatrix * vec4(position,1.0);
+      }
+    </script>
+
+    <script id="fshader" type="x-shader/x-fragment">
+
+            //片元着色器
+            precision mediump float;
+            varying vec4 vColor;
+
+      void main(void)
+      {
+          gl_FragColor = vColor;
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script src="2.js"></script>
+  </body>
+</html>

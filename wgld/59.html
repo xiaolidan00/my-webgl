@@ -1,0 +1,54 @@
+<html>
+  <head>
+    <title>半色调着色渲染</title>
+
+    <script src="minMatrixb.js" type="text/javascript"></script>
+    <script src="59.js" type="text/javascript"></script>
+
+    <script id="vs" type="x-shader/x-vertex">
+      attribute vec3  position;
+      attribute vec3  normal;
+      attribute vec4  color;
+      uniform   mat4  mvpMatrix;
+      uniform   mat4  invMatrix;
+      uniform   vec3  lightDirection;
+      varying   float vDiffuse;
+      varying   vec4  vColor;
+
+      void main(void){
+        vec3 invLight = normalize(invMatrix * vec4(lightDirection, 0.0)).xyz;
+        vDiffuse = clamp(dot(normal, invLight), 0.0, 1.0);
+        vColor = color;
+        gl_Position = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform float dotScale;
+      varying float vDiffuse;
+      varying vec4  vColor;
+
+      void main(void){
+        vec2 v = gl_FragCoord.xy * dotScale;
+        float f = (sin(v.x) * 0.5 + 0.5) + (sin(v.y) * 0.5 + 0.5);
+
+        float s;
+        if(vDiffuse > 0.6){
+          s = 1.0;
+        }else if(vDiffuse > 0.2){
+          s = 0.6;
+        }else{
+          s = 0.4;
+        }
+
+        gl_FragColor = vec4(vColor.rgb * (vDiffuse + vec3(f)) * s, 1.0);
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <p><input type="range" id="range" min="100" max="200" value="150" /> dot scale</p>
+  </body>
+</html>

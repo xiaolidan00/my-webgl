@@ -1,0 +1,39 @@
+<html>
+  <head>
+    <title>粒子</title>
+
+    <script src="minMatrixb.js" type="text/javascript"></script>
+    <script src="60.js" type="text/javascript"></script>
+
+    <script id="vs" type="x-shader/x-vertex">
+      attribute vec2  position;
+      uniform   float pointSize;
+      varying   vec4  vColor;
+
+      void main(void){
+        gl_Position  = vec4(position, 0.0, 1.0);
+        gl_PointSize = pointSize;
+      }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      precision mediump float;
+      uniform vec4 pointColor;
+      void main(void){
+        gl_FragColor = pointColor;
+      }
+    </script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+  </body>
+</html>
